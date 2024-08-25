@@ -1,18 +1,14 @@
-// fetcher.rs
-
 use reqwest::{Client, ClientBuilder, StatusCode};
-use std::time::Duration;
 use std::collections::HashSet;
 use std::sync::Arc;
-use tokio::sync::{Semaphore, Mutex};
-use thiserror::Error;
+use std::time::Duration;
+use tokio::sync::{Mutex, Semaphore};
 use tokio::task;
-use url::Url;
 use tokio::time::sleep;
+use thiserror::Error;
 use rand::Rng;
 
-// number of retry attempts allowed
-const MAX_RETRIES: usize = 3;
+const MAX_RETRIES: usize = 3;  // Number of retry attempts allowed
 
 #[derive(Error, Debug)]
 pub enum CrawlerError {
@@ -26,6 +22,7 @@ pub enum CrawlerError {
     MaxRetriesReached,
 }
 
+// Function to create an HTTP client with predefined settings
 pub fn create_http_client() -> Result<Client, reqwest::Error> {
     ClientBuilder::new()
         .timeout(Duration::from_secs(10))
@@ -34,27 +31,21 @@ pub fn create_http_client() -> Result<Client, reqwest::Error> {
         .build()
 }
 
-pub fn normalize_url(url: &str) -> Result<String, CrawlerError> {
-    let mut parsed_url = Url::parse(url).map_err(|e| CrawlerError::UrlNormalizationError(e.to_string()))?;
-    parsed_url.set_fragment(None);
-    Ok(parsed_url.as_str().trim_end_matches('/').to_lowercase())
-}
 
-pub async fn fetch_page(url: &str, client: &Client) -> Result<String, CrawlerError> {
+
+// Function to fetch a page with retries and exponential backoff
+pub async fn fetch_page(url: &str, client: &Client, user_agent: &str) -> Result<String, CrawlerError> {
     let mut attempt = 0;
     while attempt < MAX_RETRIES {
         attempt += 1;
         match client.get(url)
-            .header("User-Agent", "MyCrawler/1.0")
+            .header("User-Agent", user_agent)
             .send()
             .await
         {
             Ok(response) => {
                 if response.status().is_success() {
-                    return match response.text().await {
-                        Ok(body) => Ok(body),
-                        Err(e) => Err(CrawlerError::RequestError(e)),
-                    };
+                    return response.text().await.map_err(CrawlerError::RequestError);
                 } else {
                     eprintln!("Attempt {}: Failed to fetch {}: HTTP {}", attempt, url, response.status());
                     if attempt == MAX_RETRIES {
@@ -70,7 +61,7 @@ pub async fn fetch_page(url: &str, client: &Client) -> Result<String, CrawlerErr
             }
         }
 
-        // this is exponential backoff with some jitter to avoid multiple retries at the same time
+        // Exponential backoff with jitter
         let backoff = Duration::from_millis(2u64.pow(attempt as u32) * 100 + rand::thread_rng().gen_range(0..100));
         sleep(backoff).await;
     }
@@ -78,11 +69,13 @@ pub async fn fetch_page(url: &str, client: &Client) -> Result<String, CrawlerErr
     Err(CrawlerError::MaxRetriesReached)
 }
 
+// Function to fetch multiple pages in parallel
 pub async fn fetch_pages_in_parallel(
     urls: Vec<(String, usize)>,
     client: &Client,
     delay_ms: u64,
-    max_concurrent_requests: usize
+    max_concurrent_requests: usize,
+    user_agent: &str  // Include user_agent in the function signature
 ) -> Vec<(String, usize, Result<String, CrawlerError>)> {
     let semaphore = Arc::new(Semaphore::new(max_concurrent_requests));
     let visited_urls = Arc::new(Mutex::new(HashSet::new()));
@@ -95,6 +88,7 @@ pub async fn fetch_pages_in_parallel(
         let permit = Arc::clone(&semaphore).acquire_owned().await.unwrap();
         let visited_urls = Arc::clone(&visited_urls);
         let results = Arc::clone(&results);
+        let user_agent = user_agent.to_string();  // Clone user_agent for the task
 
         let task = task::spawn(async move {
             let mut visited = visited_urls.lock().await;
@@ -104,9 +98,9 @@ pub async fn fetch_pages_in_parallel(
                 drop(visited);
 
                 let _permit = permit;
-                let result = fetch_page(&url, &client).await;
+                let result = fetch_page(&url, &client, &user_agent).await;
                 results.lock().await.push((url.clone(), depth, result));
-                tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                sleep(Duration::from_millis(delay_ms)).await;
             }
         });
         tasks.push(task);

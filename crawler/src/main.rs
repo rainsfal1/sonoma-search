@@ -5,6 +5,7 @@ mod crawler;
 mod fetcher;
 mod parser;
 mod storage;
+mod robots;
 
 use config::Config;
 use crawler::Crawler;

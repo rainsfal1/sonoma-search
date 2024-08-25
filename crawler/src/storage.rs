@@ -8,7 +8,7 @@ use sha2::{Sha256, Digest};
 
 pub async fn save_content(url: &str, content: &str) -> Result<(), std::io::Error> {
     let file_name = url_to_file_name(url);
-    let path = Path::new("crawled_pages").join(file_name);
+    let path = Path::new("crawler/crawled_pages").join(file_name);
 
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent).await?;

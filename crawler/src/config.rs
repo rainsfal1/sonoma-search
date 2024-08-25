@@ -21,6 +21,9 @@ pub struct Config {
 
     #[structopt(short, long, default_value = "100")]
     pub delay_ms: u64,
+
+    #[structopt(short, long, default_value = "MyCrawler/1.0")]
+    pub user_agent: String,
 }
 
 impl Config {
