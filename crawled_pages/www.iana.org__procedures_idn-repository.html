@@ -1,0 +1,302 @@
+
+<!doctype html>
+<html>
+<head>
+	<title>IDN Repository Procedures</title>
+
+	<meta charset="utf-8" />
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	
+	<link rel="stylesheet" href="/_css/2022/iana_website.css"/>
+	<link rel="shortcut icon" type="image/ico" href="/_img/bookmark_icon.ico"/>
+
+	<script type="text/javascript" src="/_js/jquery.js"></script>
+	<script type="text/javascript" src="/_js/iana.js"></script>
+
+	
+</head>
+
+<body>
+
+<header>
+    <div id="header">
+        <div id="logo">
+            <a href="/"><img src="/_img/2022/iana-logo-header.svg" alt="Homepage"/></a>
+        </div>
+        <div class="navigation">
+            <ul>
+                <li><a href="/domains">Domains</a></li>
+                <li><a href="/protocols">Protocols</a></li>
+                <li><a href="/numbers">Numbers</a></li>
+<!--                <li><a href="/news">News</a></li>-->
+                <li><a href="/about">About</a></li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<div id="body">
+
+
+<article class="hemmed sidenav">
+
+    <main>
+    
+<div class="help-article">
+
+<h1>Procedures for the IDN Repository</h1>
+<h2>Overview</h2>
+<p>The Repository of IDN Practices was created to support the development
+of the internationalized domain names (IDNs) by promoting the sharing
+of registry IDN policies. The policies are referred to as “Label
+Generation Rulesets” (LGRs), and historically as “IDN tables” or “variant tables.”</p>
+<p>Specifically, as described in the <a href="http://www.icann.org/en/topics/idn/idn-guidelines-02sep11-en.htm">Guidelines for the Implementation
+of Internationalized Domain Names</a>:</p>
+<blockquote>
+A registry will publish one or several lists of Unicode code points
+that are permitted for registration and will not accept the
+registration of any name containing an unlisted code point. Each such
+list will indicate the script or language(s) it is intended to support.
+If registry policy treats any code point in a list as a variant of any
+other code point, the nature of that variance and the policies attached
+to it will be clearly articulated. All such code point listings will be
+placed in the IANA Repository for IDN TLD Practices in tabular format
+together with any rules applied to the registration of names containing
+those code points, before any such registration may be accepted.
+</blockquote>
+
+<p>We do not maintain the content of the data and hence are not responsible for
+its accuracy. The sole purpose of the repository is to publish LGRs that have
+been verified as coming from representatives of domain registries. Registries
+that implement IDN support are strongly encouraged to use this repository,
+and some may be contractually required to do so by ICANN.</p>
+<h2>LGR Requirements</h2>
+<p>LGRs should be listed in one of the following formats:</p>
+<ul>
+<li>Label Generation Ruleset format (recommended). See 
+  <a href="/go/rfc7940">RFC 7940</a>.</li>
+<li>ASCII or UTF-8 encoded text file, adhering to common conventions
+  such as those documented in <a href="/go/rfc3743">RFC 3743</a> and <a href="/go/rfc4290">RFC 4290</a>.
+  The format should be applied consistently throughout the document and allow
+  for machine parsing.</li>
+</ul>
+<p>An LGR must contain the following elements in its header:</p>
+<ul>
+<li>Script or Language Designator (see below for guidance)</li>
+<li>Version Number (this must increase with each amendment to the LGR, even if the updates are limited to the header itself)</li>
+<li>Effective Date (the date at which the policy becomes applicable in operational use)</li>
+<li>Registry Contact Details (contact name, email address, and/or phone number)</li>
+</ul>
+<p>Bear in mind that the main purpose of this repository is to encourage re-use and
+analysis. As such, we recommend against submitting data in other formats unless
+it is not possible to represent the LGR using these available standards.</p>
+<h2>Registration Process</h2>
+<p>All delegated TLD registries can apply to register an LGR or submit an update to an existing LGR. Deprecated LGRs will be archived and marked as historical. </p>
+<h3>gTLD Submissions</h3>
+<p>Service requests should be submitted to ICANN via the appropriate Naming Services portal. For more information, see <a href="https://www.icann.org/resources/pages/idn-service-requests-en">IDN service requests</a>.</p>
+<h3>ccTLD and Other Submissions</h3>
+<ul>
+<li>Anyone may submit a request to list or update an LGR, but we will ask for its
+  posting to be approved by the current Administrative Contact for the domain in
+  the Root Zone Database. Before submitting any registration or change request, the
+  submitter should ensure that the Administrative Contact is aware of the proposed
+  LGR and ready to consent to its publication.</li>
+<li>A registration request must include all of the necessary elements described in
+  the requirements listed above. Requests should be sent to the email address
+  idn-tables@iana.org. The submitter will receive a confirmation email containing
+  a ticket number.</li>
+<li>Requests comprising multiple LGRs should be sent in the form of an archive
+  (such as a ZIP or TAR file). For particularly complex applications, involving
+  many LGRs or domains, please contact us in advance in order to identify the most
+  optimal method of submission that does not involve unnecessary repetition.</li>
+</ul>
+<p>Upon submission, within five days either:</p>
+<ul>
+<li>the Administrative Contact will receive an email, with the Technical Contact and submitter in copy, requesting the Administrative Contact’s confirmation that the details of the request are correct, or </li>
+<li>the submitter will receive notice that the LGR does not contain all of the elements necessary for registration. The LGR will not be sent to the Administrative Contact for confirmation until any necessary changes have been made.</li>
+</ul>
+<p>LGRs may be revised according to the same process (i.e. request to
+idn-tables@iana.org followed by confirmation request to Administrative Contact).
+Updated LGRs must have a version number that is distinct from the current or
+previously posted version of the LGR. Updates should be accompanied by a description
+of the reason(s) for the request. </p>
+<h2>Language and Script Codes</h2>
+<p>When constructing Label Generation Rulesets (LGRs), the languages and scripts
+the ruleset covers need to be specified. This is a list of common languages and
+scripts to aid in the classification process. For less common classifications,
+refer to the <a href="/assignments/language-subtag-registry/language-subtag-registry">IANA Language Subtag Registry</a>
+and <a href="/go/rfc5646">RFC 5646</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Language/Script</th>
+<th>Code</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Korean</td>
+<td>ko</td>
+<td></td>
+</tr>
+<tr>
+<td>Chinese</td>
+<td>zh</td>
+<td></td>
+</tr>
+<tr>
+<td>Simplified Chinese</td>
+<td>zh-Hans</td>
+<td></td>
+</tr>
+<tr>
+<td>Traditional Chinese</td>
+<td>zh-Hant</td>
+<td></td>
+</tr>
+<tr>
+<td>Brazilian Portuguese</td>
+<td>pt-BR</td>
+<td></td>
+</tr>
+<tr>
+<td>American English</td>
+<td>en-US</td>
+<td></td>
+</tr>
+<tr>
+<td>English</td>
+<td>en</td>
+<td></td>
+</tr>
+<tr>
+<td>Swedish</td>
+<td>sv</td>
+<td></td>
+</tr>
+<tr>
+<td>Latin (script)</td>
+<td>Latn</td>
+<td></td>
+</tr>
+<tr>
+<td>Arabic (language)</td>
+<td>ar</td>
+<td></td>
+</tr>
+<tr>
+<td>Arabic (script)</td>
+<td>Arab</td>
+<td>Includes languages beyond Arabic language, such as Urdu and Persian</td>
+</tr>
+<tr>
+<td>Cyrillic</td>
+<td>Cyrl</td>
+<td></td>
+</tr>
+<tr>
+<td>Japanese (script)</td>
+<td>Jpan</td>
+<td>Includes Katakana, Hiragana and Kanji</td>
+</tr>
+</tbody>
+</table>
+<p>For special cases there may be a need to list entries without a specific language
+or script classification. In such cases use <code>und</code>.</p>
+<p>Note that we are unable to accept registrations for languages and script codes that are not recognized in the Language Subtag Registry.</p>
+<h3>Common confusion with country codes</h3>
+<p>As language names and country names are often similar, if not identical, there
+is often confusion between the two. Be careful not to accidentally use
+a country code when you intend to use a language code. Common errors we see
+include "kr" instead of "ko" for Korean, "jp" instead of "ja" for Japanese,
+and "dk" instead of "da" for Danish.</p>
+<p>Country codes may be used, however, as geographic designators (which appear in
+upper case in language tags). For example, "ja-JP" means "Japanese as used in
+Japan," and "zh-TW" means "Chinese as used in Taiwan." Use script
+tags ("Hant," "Hans," etc.) to denote distinctions between writing systems.</p>
+
+<div class="last-updated">Last revised 2022-08-04.</div>
+
+
+</div>
+
+    </main>
+
+    <nav id="sidenav">
+    
+    </nav>
+
+</article>
+
+
+</div>
+
+<footer>
+    <div id="footer">
+        <table class="navigation">
+            <tr>
+                <td class="section"><a href="/domains">Domain&nbsp;Names</a></td>
+                <td class="subsection">
+                    <ul>
+                        <li><a href="/domains/root">Root Zone Registry</a></li>
+                        <li><a href="/domains/int">.INT Registry</a></li>
+                        <li><a href="/domains/arpa">.ARPA Registry</a></li>
+                        <li><a href="/domains/idn-tables">IDN Repository</a></li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td class="section"><a href="/numbers">Number&nbsp;Resources</a></td>
+                <td class="subsection">
+                    <ul>
+                        <li><a href="/abuse">Abuse Information</a></li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td class="section"><a href="/protocols">Protocols</a></td>
+                <td class="subsection">
+                    <ul>
+                        <li><a href="/protocols">Protocol Registries</a></li>
+                        <li><a href="/time-zones">Time Zone Database</a></li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td class="section"><a href="/about">About&nbsp;Us</a></td>
+                <td class="subsection">
+                    <ul>
+                        <li><a href="/performance">Performance</a></li>
+                        <li><a href="/reports">Reports</a></li>
+                        <li><a href="/reviews">Reviews</a></li>
+                        <li><a href="/about/excellence">Excellence</a></li>
+<!--                        <li><a href="/news">News</a></li>-->
+                        <li><a href="/contact">Contact Us</a></li>
+                    </ul>
+                </td>
+            </tr>
+        </table>
+
+        <div id="custodian">
+            <p>The IANA functions coordinate the Internet’s globally unique identifiers, and
+                are provided by <a href="http://pti.icann.org">Public Technical Identifiers</a>, an affiliate of
+                <a href="http://www.icann.org/">ICANN</a>.</p>
+        </div>
+
+        <div id="legalnotice">
+            <ul>
+                <li><a href="https://www.icann.org/privacy/policy">Privacy Policy</a></li>
+                <li><a href="https://www.icann.org/privacy/tos">Terms of Service</a></li>
+            </ul>
+        </div>
+
+    </div>
+</footer>
+
+
+
+</body>
+
+</html>

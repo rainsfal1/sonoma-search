@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+    "crawler",
+    "indexer",
+    "searcher",
+    "ranker",
+    "security",
+]
+
+# A Rust workspace is a collection of multiple Rust projects
+# (called "crates") that are managed together. It allows you to group related
+# projects, making it easier to manage dependencies, build them together, and
+# share code between them.

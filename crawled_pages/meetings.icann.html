@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="/assets/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+    <link rel="stylesheet" href="/assets/bootstrap-icons.min.css">
+    <link rel='stylesheet' href="/assets/styles.css">
+    <meta name="description" content="Calendar of past and upcoming ICANN Meetings on the ICANN Public Meetings Site">
+
+    <title>Calendar & Archives | ICANN Public Meetings</title>
+    <style>
+        @media screen and (max-width: 600px) {
+            table thead {
+                display: none;
+            }
+            table td {
+                display: flex;
+            }
+
+            table td::before {
+                content: attr(label);
+                font-weight: bold;
+                width: 120px;
+                min-width: 120px;
+            }
+            table td sup {
+                top:.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container bg-light rounded-top-2 d-flex justify-content-between align-items-center" >
+        <div class="p-2">
+            <a href="/en"><img src="/assets/images/logo.png" class="img-fluid" alt="ICANN Meetings Logo" /></a>
+        </div>
+        <div class="p-2 d-lg-flex d-none">
+            <div class="d-flex m-2">
+            <a class="p-2 hov-x" href="https://twitter.com/ICANN" rel="noopener" target="_blank" aria-label="ICANN.org X"><i class="bi bi-twitter-x h4"></i></a>
+            <a class="p-2 hov-facebook" href="https://www.facebook.com/icannorg" rel="noopener" target="_blank" aria-label="ICANN.org Facebook"><i class="bi bi-facebook h4"></i></a>
+            <a class="p-2 hov-instagram" href="https://www.instagram.com/icannorg" rel="noopener" target="_blank" aria-label="ICANN.org Instagram"><i class="bi bi-instagram h4"></i></a>
+
+            <a class="p-2 hov-linkedin" href="https://www.linkedin.com/company/icann" rel="noopener" target="_blank" aria-label="ICANN.org LinkedIn"><i class="bi bi-linkedin h4"></i></a>
+            <a class="p-2 hov-youtube" href="https://www.youtube.com/user/icannnews" rel="noopener" target="_blank" aria-label="ICANN.org YouTube"><i class="bi bi-youtube h4"></i></a>
+            <a class="p-2 hov-flickr" href="https://www.flickr.com/photos/icann" rel="noopener" target="_blank" aria-label="ICANN.org Flickr"><svg xmlns="http://www.w3.org/2000/svg" height="28" width="24" viewBox="0 0 448 512"><path fill="#007bc1" d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM144.5 319c-35.1 0-63.5-28.4-63.5-63.5s28.4-63.5 63.5-63.5 63.5 28.4 63.5 63.5-28.4 63.5-63.5 63.5zm159 0c-35.1 0-63.5-28.4-63.5-63.5s28.4-63.5 63.5-63.5 63.5 28.4 63.5 63.5-28.4 63.5-63.5 63.5z"/></svg></a>
+            </div>
+        </div>
+
+</div>
+<div class="container px-0">
+<nav class="navbar navbar-expand-lg navbar-light bg-dark-subtle">
+    <div class="container">
+        <span class="navbar-brand" href="#"></span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        About
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="/en/about">About ICANN Meetings</a></li>
+                        <li><a class="dropdown-item" href="/en/data-reports">Data Reports</a></li>
+<!--                        <li><hr class="dropdown-divider"></li>-->
+                        <li><a class="dropdown-item" href="/en/regions">ICANN Geographic Regions</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/en/meetings/icann81">ICANN81 Annual General Meeting</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/en/calendar">Calendar & Archives</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="/en/sponsor" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Opportunities
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="/en/host">Host a Meeting</a></li>
+                        <li><a class="dropdown-item" href="/en/sponsor">Sponsorship</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/en/remote-participation">Participation Tools</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="/en/sponsor" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Resources
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="https://www.icann.org/en/beginners">ICANN for Beginners</a></li>
+                        <li><a class="dropdown-item" href="https://www.icann.org/resources/pages/community-childcare-grants">Childcare Grant Program</a></li>
+                        <li><a class="dropdown-item" href="https://omb.icann.org/">Report Harassment</a></li>
+                        <li><a class="dropdown-item" href="https://www.icann.org/complaints-office">Complaints Office</a></li>
+                        <li><a class="dropdown-item" href="https://www.icann.org/media-en">Media Resources</a></li>
+                    </ul>
+                </li>
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link disabled">Disabled</a>-->
+<!--                </li>-->
+            </ul>
+<!--            <form class="d-flex" role="search">-->
+<!--                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">-->
+<!--                <button class="btn btn-outline-success" type="submit">Search</button>-->
+<!--            </form>-->
+        </div>
+    </div>
+</nav>
+</div>
+
+
+<div class="container p-2 p-2 px-4 pt-4 bg-light">
+    <h1>Calendar & Archives</h1>
+    <div class="form-floating mb-3">
+        <input type="text" class="form-control" id="searchInput" placeholder="Search">
+        <label for="searchInput">Search</label>
+    </div>
+
+    <table id="myTable" class="table table-striped table-responsive">
+        <thead>
+        <tr bgcolor="#53565a">
+            <th data-sort="string">Event</th>
+            <th data-sort="string">Meeting Type</th>
+            <th data-sort="string">Dates</th>
+            <th data-sort="string">Location</th>
+            <th><a href="/en/regions" style="color: black; font-weight: bold;">ICANN Region</a></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><a name="2028" id="2028"></a>ICANN93</td>
+            <td>Annual General Meeting (30th)</td>
+            <td>21-26 October 2028</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr>
+            <td>ICANN92</td>
+            <td>Policy Forum</td>
+            <td>12-15 June 2028</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr >
+            <td>ICANN91</td>
+            <td>Community Forum</td>
+            <td>4-9 March 2028</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr>
+            <td><a name="2027" id="2027"></a>ICANN90</td>
+            <td>Annual General Meeting (29th)</td>
+            <td>30 Oct - 4 Nov 2027</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr >
+            <td>ICANN89</td>
+            <td>Policy Forum</td>
+            <td>14-17 June 2027</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr>
+            <td>ICANN88</td>
+            <td>Community Forum</td>
+            <td>13-18 March 2027</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr >
+            <td><a name="2026" id="2026"></a>ICANN87</td>
+            <td>Annual General Meeting (28th)</td>
+            <td>17-22 October 2026</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr>
+            <td>ICANN86</td>
+            <td>Policy Forum</td>
+            <td>8-11 June 2026</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr >
+            <td>ICANN85</td>
+            <td>Community Forum</td>
+            <td>7-12 March 2026</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr>
+            <td><a name="2025" id="2025"></a>ICANN84</td>
+            <td>Annual General Meeting (27th)</td>
+            <td>25-30 October 2025</td>
+            <td>TBD</td>
+            <td>TBD</td>
+        </tr>
+        <tr >
+            <td>ICANN83</td>
+            <td>Policy Forum</td>
+            <td>9-12 June 2025</td>
+            <td>Prague</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td>ICANN82</td>
+            <td>Community Forum</td>
+            <td>8-13 March 2025</td>
+            <td>Seattle</td>
+            <td>NA</td>
+        </tr>
+        <tr >
+            <td><a name="2024" id="2024"></a><a href="/en/meetings/icann81">ICANN81</a></td>
+            <td>Annual General Meeting (26th)</td>
+            <td>9-14 November 2024</td>
+            <td>Istanbul</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a href="https://icann80.sched.com" target="_blank" rel="noopener">ICANN80</a></td>
+            <td>Policy Forum</td>
+            <td>10-13 June 2024</td>
+            <td>Kigali</td>
+            <td>AF</td>
+        </tr>
+        <tr >
+            <td><a href="https://icann79.sched.com">ICANN79</a></td>
+            <td>Community Forum</td>
+            <td>2-7 March 2024</td>
+            <td>San Juan</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a name="2023" id="2023"></a><a href="https://icann78.sched.com">ICANN78</a></td>
+            <td>Annual General Meeting (25th)</td>
+            <td>21-26 October 2023</td>
+            <td>Hamburg</td>
+            <td>EUR</td>
+        </tr>
+        <tr >
+            <td><a href="https://icann77.sched.com/">ICANN77</a></td>
+            <td>Policy Forum</td>
+            <td>12-15 June 2023</td>
+            <td>Washington, D.C.</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="https://icann76.sched.com/">ICANN76</a></td>
+            <td>Community Forum</td>
+            <td>11-16 March 2023</td>
+            <td>Cancún</td>
+            <td>LAC</td>
+        </tr>
+        <tr >
+            <td><a name="2022" id="2022"></a><a href="https://archive.icann.org/meetings/icann75/">ICANN75</a></td>
+            <td>Annual General Meeting (24th)</td>
+            <td>17-22 September 2022</td>
+            <td>Kuala Lumpur</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann74/">ICANN74</a></td>
+            <td>Policy Forum</td>
+            <td>13-16 June 2022</td>
+            <td>The Hague</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann73/">ICANN73</a></td>
+            <td>Virtual Community Forum</td>
+            <td>7-10 March 2022</td>
+            <td>Online Only (<a href="#original_city">*</a>San Juan)</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a name="2021" id="2021"></a><a href="https://archive.icann.org/meetings/icann72/">ICANN72</a></td>
+            <td>Virtual Annual General Meeting&nbsp;(23rd)</td>
+            <td>25-28 October 2021</td>
+            <td>Online Only (<a href="#original_city">*</a>Seattle)</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann71/">ICANN71</a></td>
+            <td>Virtual Policy Forum</td>
+            <td>14-17 June 2021</td>
+            <td>Online Only (<a href="#original_city">*</a>The Hague)</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann70/">ICANN70</a></td>
+            <td>Virtual Community Forum</td>
+            <td>22-25 March 2021</td>
+            <td>Online Only (<a href="#original_city">*</a>Cancún)</td>
+            <td>LAC</td>
+        </tr>
+        <tr>
+            <td><a name="2020" id="2020"></a><a href="https://archive.icann.org/meetings/icann69/">ICANN69</a></td>
+            <td>Virtual Annual General Meeting&nbsp; (22nd)</td>
+            <td>13-15 &amp; 19-22 October 2020</td>
+            <td>Online Only (<a href="#original_city">*</a>Hamburg)</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann68/">ICANN68</a></td>
+            <td>Virtual Policy Forum</td>
+            <td>22-25 June 2020</td>
+            <td>Online Only (<a href="#original_city">*</a>Kuala Lumpur)</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann67/">ICANN67</a></td>
+            <td>Virtual Community Forum</td>
+            <td>7-12 March 2020</td>
+            <td>Online Only (<a href="#original_city">*</a>Cancún)</td>
+            <td>LAC</td>
+        </tr>
+        <tr>
+            <td><a name="2019" id="2019"></a><a href="https://archive.icann.org/meetings/icann66/">ICANN66</a></td>
+            <td>Annual General Meeting (21st)</td>
+            <td>2-7 November 2019</td>
+            <td>Montréal</td>
+            <td>NA</td>
+        </tr>
+        <tr >
+            <td><a href="https://archive.icann.org/meetings/icann65/">ICANN65</a></td>
+            <td>Policy Forum</td>
+            <td>24-27 June 2019</td>
+            <td>Marrakech</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann64/">ICANN64</a></td>
+            <td>Community Forum</td>
+            <td>9-14 March 2019</td>
+            <td>Kobe</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a name="2018" id="2018"></a><a href="https://archive.icann.org/meetings/icann63/">ICANN63</a></td>
+            <td>Annual General Meeting (20th)</td>
+            <td>20-25 October 2018</td>
+            <td>Barcelona</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann62/">ICANN62</a></td>
+            <td>Policy Forum</td>
+            <td>25-28 June 2018</td>
+            <td>Panama City</td>
+            <td>LAC</td>
+        </tr>
+        <tr >
+            <td><a href="https://archive.icann.org/meetings/icann61/">ICANN61</a></td>
+            <td>Community Forum</td>
+            <td>10-15 March 2018</td>
+            <td>San Juan</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a name="2017" id="2017"></a><a href="https://archive.icann.org/meetings/icann60/abudhabi/">ICANN60</a>
+            </td>
+            <td>Annual General Meeting (19th)</td>
+            <td>28 Oct - 3 Nov 2017</td>
+            <td>Abu Dhabi</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a href="https://archive.icann.org/meetings/icann59/johannesburg/">ICANN59</a></td>
+            <td>Policy Forum</td>
+            <td>26-29 June 2017</td>
+            <td>Johannesburg</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann58/copenhagen/">ICANN58</a></td>
+            <td>Community Forum</td>
+            <td>11-16 March 2017</td>
+            <td>Copenhagen</td>
+            <td>EUR</td>
+        </tr>
+        <tr >
+            <td><a name="2016" id="2016"></a><a href="https://archive.icann.org/meetings/icann57/hyderabad/">ICANN57</a>
+            </td>
+            <td>Annual General Meeting (18th)</td>
+            <td>3-9 November 2016</td>
+            <td>Hyderabad</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann56/helsinki/">ICANN56</a></td>
+            <td>Policy Forum</td>
+            <td>27-30 June 2016</td>
+            <td>Helsinki</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/icann55/marrakech/">ICANN55</a></td>
+            <td>&nbsp;</td>
+            <td>5-10 March 2016</td>
+            <td>Marrakech</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a name="2015" id="2015"></a><a href="https://archive.icann.org/meetings/icann54/dublin/">ICANN54</a></td>
+            <td>Annual General Meeting (17th)</td>
+            <td>18-22 October 2015</td>
+            <td>Dublin</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="https://archive.icann.org/meetings/buenosaires2015/en/materials.html">ICANN53</a></td>
+            <td>&nbsp;</td>
+            <td>21-25 June 2015</td>
+            <td>Buenos Aires</td>
+            <td>LAC</td>
+        </tr>
+        <tr>
+            <td><a href="http://singapore52.icann.org">ICANN52</a></td>
+            <td>&nbsp;</td>
+            <td>8-12 February 2015</td>
+            <td>Singapore</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a name="2014" id="2014"></a><a href="http://la51.icann.org">ICANN51</a></td>
+            <td>Annual General Meeting (16th)</td>
+            <td>12-16 October 2014</td>
+            <td>Los Angeles</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="http://london50.icann.org">ICANN50</a></td>
+            <td>&nbsp;</td>
+            <td>22-26 June 2014</td>
+            <td>London</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="http://singapore49.icann.org">ICANN49</a></td>
+            <td>&nbsp;</td>
+            <td>23-27 March 2014</td>
+            <td>Singapore</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a name="2013" id="2013"></a><a href="http://buenosaires48.icann.org">ICANN48</a></td>
+            <td>Annual General Meeting (15th)</td>
+            <td>17-21 Nov 2013</td>
+            <td>Buenos Aires</td>
+            <td>LAC</td>
+        </tr>
+        <tr >
+            <td><a href="http://durban47.icann.org">ICANN47</a></td>
+            <td>&nbsp;</td>
+            <td>14-18 July 2013</td>
+            <td>Durban</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a href="http://beijing46.icann.org">ICANN46</a></td>
+            <td>&nbsp;</td>
+            <td>7-11 April 2013</td>
+            <td>Beijing</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a name="2012" id="2012"></a><a href="http://toronto45.icann.org">ICANN45</a></td>
+            <td>Annual General Meeting (14th)</td>
+            <td>14-18 October 2012</td>
+            <td>Toronto</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="http://prague44.icann.org">ICANN44</a></td>
+            <td>&nbsp;</td>
+            <td>24-29 June 2012</td>
+            <td>Prague</td>
+            <td>EUR</td>
+        </tr>
+        <tr >
+            <td><a href="http://costarica43.icann.org/">ICANN43</a></td>
+            <td>&nbsp;</td>
+            <td>11-16 March 2012</td>
+            <td>San Jose&nbsp;</td>
+            <td>LAC</td>
+        </tr>
+        <tr >
+            <td><a href="http://dakar42.icann.org/">ICANN42</a></td>
+            <td>Annual General Meeting (13th)</td>
+            <td>23-28 October 2011</td>
+            <td>Dakar&nbsp;</td>
+            <td>AF</td>
+        </tr>
+        <tr >
+            <td><a name="2011" id="2011"></a><a href="http://singapore41.icann.org/">ICANN41</a></td>
+            <td>&nbsp;</td>
+            <td>19-24 June 2011</td>
+            <td>Singapore</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a href="http://svsf40.icann.org">ICANN40</a></td>
+            <td>&nbsp;</td>
+            <td>13-18 March 2011</td>
+            <td>San Francisco</td>
+            <td>NA</td>
+        </tr>
+        <tr >
+            <td><a name="2010" id="2010"></a><a href="http://cartagena39.icann.org">ICANN39</a></td>
+            <td>Annual General Meeting (12th)</td>
+            <td>5-10 December 2010</td>
+            <td>Cartagena de Indias</td>
+            <td>LAC</td>
+        </tr>
+        <tr>
+            <td><a href="http://brussels38.icann.org">ICANN38</a></td>
+            <td>&nbsp;</td>
+            <td>20-25 June 2010</td>
+            <td>Brussels</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="http://nbo.icann.org">ICANN37</a></td>
+            <td>&nbsp;</td>
+            <td>7-12 March 2010&nbsp;</td>
+            <td>Nairobi</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a name="2009" id="2009"></a><a href="http://sel.icann.org">ICANN36</a></td>
+            <td>Annual General Meeting (11th)</td>
+            <td>25-30 October 2009</td>
+            <td>Seoul</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a href="http://syd.icann.org">ICANN35</a></td>
+            <td>&nbsp;</td>
+            <td>21-26 June 2009</td>
+            <td>Sydney</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a href="http://mex.icann.org">ICANN34</a></td>
+            <td>&nbsp;</td>
+            <td>1-6 March 2009</td>
+            <td>Mexico City</td>
+            <td>LAC</td>
+        </tr>
+        <tr>
+            <td><a name="2008" id="2008"></a><a href="http://cai.icann.org">ICANN33</a></td>
+            <td>Annual General Meeting (10th)</td>
+            <td>2-7 November 2008</td>
+            <td>Cairo</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a href="http://par.icann.org">ICANN32</a></td>
+            <td>&nbsp;</td>
+            <td>22-26 June 2008</td>
+            <td>Paris</td>
+            <td>EUR</td>
+        </tr>
+        <tr >
+            <td>Dubai Regional Mtg</td>
+            <td>&nbsp;</td>
+            <td>1-3 April 2008</td>
+            <td>Dubai</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a href="http://delhi.icann.org">ICANN31</a></td>
+            <td>&nbsp;</td>
+            <td>10-15 February 2008</td>
+            <td>New Delhi&nbsp;</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a name="2007" id="2007"></a><a href="http://losangeles2007.icann.org">ICANN30</a></td>
+            <td>Annual General Meeting (9th)</td>
+            <td>29 Oct - 2 Nov 2007</td>
+            <td>Los Angeles&nbsp;</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="http://taipei2007.icann.org">Taipei Regional Mtg</a></td>
+            <td>&nbsp;</td>
+            <td>19-21 October 2007</td>
+            <td>Taipei</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a href="http://sanjuan2007.icann.org">ICANN29</a></td>
+            <td>&nbsp;</td>
+            <td>25-29 June 2007</td>
+            <td>San Juan</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/lisbon/archives.htm">ICANN28</a></td>
+            <td>&nbsp;</td>
+            <td>26-30 March 2007</td>
+            <td>Lisbon</td>
+            <td>EUR&nbsp;</td>
+        </tr>
+        <tr >
+            <td><a name="2006" id="2006"></a><a href="http://archive.icann.org/en/meetings/saopaulo/archives.html">ICANN27</a>
+            </td>
+            <td>&nbsp;Annual General Meeting (8th)</td>
+            <td>2-8 December 2006</td>
+            <td>São Paulo</td>
+            <td>LAC</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/marrakech">ICANN26</a></td>
+            <td>&nbsp;</td>
+            <td>26-30 June 2006</td>
+            <td>Marrakech</td>
+            <td>AF</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/wellington">ICANN25</a></td>
+            <td>&nbsp;</td>
+            <td>25-31 March 2006</td>
+            <td>Wellington</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a name="2005" id="2005"></a><a href="http://archive.icann.org/en/meetings/vancouver">ICANN24</a></td>
+            <td>Annual General Meeting (7th)</td>
+            <td>30 Nov - 4 Dec 2005</td>
+            <td> Vancouver</td>
+            <td>NA</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/luxembourg">ICANN23</a></td>
+            <td>&nbsp;</td>
+            <td>11-15 July 2005</td>
+            <td> Luxembourg City</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/mardelplata">ICANN22</a></td>
+            <td>&nbsp;</td>
+            <td>4-8 April 2005</td>
+            <td>Mar del Plata</td>
+            <td>LAC</td>
+        </tr>
+        <tr>
+            <td><a name="2004" id="2004"></a><a href="http://archive.icann.org/en/meetings/capetown">ICANN21</a></td>
+            <td>Annual General Meeting (6th)</td>
+            <td>1-5 December 2004</td>
+            <td> Cape Town</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/kualalumpur">ICANN20</a></td>
+            <td>&nbsp;</td>
+            <td>19-23 July 2004</td>
+            <td> Kuala Lumpur</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/rome">ICANN19</a></td>
+            <td>&nbsp;</td>
+            <td>2-6 March 2004</td>
+            <td> Rome</td>
+            <td>EUR</td>
+        </tr>
+        <tr >
+            <td><a name="2003" id="2003"></a><a href="http://archive.icann.org/en/meetings/carthage">ICANN18</a></td>
+            <td>Annual General Meeting (5th)</td>
+            <td>27-31 October 2003</td>
+            <td> Carthage</td>
+            <td>AF</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/montreal">ICANN17</a></td>
+            <td>&nbsp;</td>
+            <td>22-26 June 2003</td>
+            <td> Montreal</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/riodejaneiro">ICANN16</a></td>
+            <td>&nbsp;</td>
+            <td>23-27 March 2003</td>
+            <td> Rio de Janeiro</td>
+            <td>LAC</td>
+        </tr>
+        <tr >
+            <td><a name="2002" id="2002"></a><a href="http://archive.icann.org/en/meetings/amsterdam/">ICANN15</a></td>
+            <td>Annual General Meeting (4th)</td>
+            <td>14-15 December 2002</td>
+            <td> Amsterdam</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/shanghai">ICANN14</a></td>
+            <td>&nbsp;</td>
+            <td>27-31 October 2002</td>
+            <td> Shanghai</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/bucharest/">ICANN13</a></td>
+            <td>&nbsp;</td>
+            <td>24-28 June 2002</td>
+            <td> Bucharest</td>
+            <td>EUR</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/accra/">ICANN12</a></td>
+            <td>&nbsp;</td>
+            <td>10-14 March 2002</td>
+            <td> Accra</td>
+            <td>AF</td>
+        </tr>
+        <tr >
+            <td><a name="2001" id="2001"></a><a href="http://archive.icann.org/en/meetings/mdr2001">ICANN11</a></td>
+            <td>Annual General Meeting (3rd)</td>
+            <td>12-15 November 2001</td>
+            <td> Marina del Rey</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/montevideo">ICANN10</a></td>
+            <td>&nbsp;</td>
+            <td>7-10 September 2001</td>
+            <td> Montevideo</td>
+            <td>LAC</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/stockholm">ICANN09</a></td>
+            <td>&nbsp;</td>
+            <td>1-4 June 2001</td>
+            <td> Stockholm</td>
+            <td>EUR</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/melbourne">ICANN08</a></td>
+            <td>&nbsp;</td>
+            <td>9-13 March 2001</td>
+            <td> Melbourne</td>
+            <td>AP</td>
+        </tr>
+        <tr >
+            <td><a name="2000" id="2000"></a><a href="http://archive.icann.org/en/meetings/mdr2000">ICANN07</a></td>
+            <td>Annual General Meeting (2nd)</td>
+            <td>13-16 November 2000</td>
+            <td> Marina del Rey</td>
+            <td>NA</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/yokohama">ICANN06</a></td>
+            <td>&nbsp;</td>
+            <td>13-17 July 2000</td>
+            <td> Yokohama</td>
+            <td>AP</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/cairo2000">ICANN05</a></td>
+            <td>&nbsp;</td>
+            <td>7-10 March 2000</td>
+            <td> Cairo</td>
+            <td>AF</td>
+        </tr>
+        <tr>
+            <td><a name="1999" id="1999"></a><a href="http://archive.icann.org/en/meetings/losangeles99">ICANN04</a>
+            </td>
+            <td>Annual General Meeting (1st)</td>
+            <td>1-4 November 1999</td>
+            <td> Los Angeles</td>
+            <td>NA</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/santiago/">ICANN03</a></td>
+            <td>&nbsp;</td>
+            <td>23-26 August 1999</td>
+            <td> Santiago</td>
+            <td>LAC</td>
+        </tr>
+        <tr>
+            <td><a href="http://archive.icann.org/en/meetings/berlin">ICANN02</a></td>
+            <td>&nbsp;</td>
+            <td>25-27 May 1999</td>
+            <td> Berlin</td>
+            <td>EUR</td>
+        </tr>
+        <tr >
+            <td><a href="http://archive.icann.org/en/meetings/singapore/">ICANN01</a></td>
+            <td>&nbsp;</td>
+            <td>2-4 March 1999</td>
+            <td> Singapore</td>
+            <td>AP</td>
+        </tr>
+        </tbody>
+    </table>
+    <p id="original_city">*Original event location prior to cancellation of the in-person aspect of the meeting. All events are conducted during regular working hours in the time zone of the original event location.</p>
+
+
+</div>
+
+<script>
+    const table = document.querySelector('#myTable');
+    const headers = table.querySelectorAll('thead th');
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const searchInput = document.querySelector('#searchInput');
+
+    headers.forEach(header => {
+        header.addEventListener('click', () => {
+            const sortBy = header.getAttribute('data-sort');
+            const index = header.cellIndex;
+
+            rows.sort((a, b) => {
+                const aValue = a.cells[index].textContent.trim();
+                const bValue = b.cells[index].textContent.trim();
+
+                if (sortBy === 'number') {
+                    return parseFloat(aValue) - parseFloat(bValue);
+                } else {
+                    return aValue.localeCompare(bValue);
+                }
+            });
+
+            // Clear the table and append sorted rows
+            rows.forEach(row => {
+                table.tBodies[0].appendChild(row);
+            });
+        });
+    });
+
+
+
+    searchInput.addEventListener('input', () => {
+        const searchText = searchInput.value.toLowerCase();
+
+        rows.forEach(row => {
+            const rowData = row.textContent.toLowerCase();
+            if (rowData.includes(searchText)) {
+                row.style.display = 'table-row';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+
+<script type="text/javascript">
+    window.setMobileTable = function(selector) {
+        // if (window.innerWidth > 600) return false;
+        const tableEl = document.querySelector(selector);
+        const thEls = tableEl.querySelectorAll('thead th');
+        const tdLabels = Array.from(thEls).map(el => el.innerText);
+        tableEl.querySelectorAll('tbody tr').forEach( tr => {
+            Array.from(tr.children).forEach(
+                (td, ndx) =>  td.setAttribute('label', tdLabels[ndx])
+            );
+        });
+    };
+    window.setMobileTable('#myTable');
+</script>
+
+
+
+<div class="container bg-light border-top rounded-bottom-2 position-relative">
+    <div class="row">
+        <div class="col-lg-10">
+            <nav class="nav justify-content-lg-start justify-content-center">
+                <a style="font-size: .75rem" class="nav-link" href="https://www.icann.org/">ICANN.org</a>
+                <a style="font-size: .75rem" class="nav-link" href="https://www.icann.org/resources/pages/expected-standards-2016-06-28-en">Expected Standards of Behavior</a>
+<!--                <a style="font-size: .75rem" class="nav-link" href="#">Contact & Help</a>-->
+                <a style="font-size: .75rem" class="nav-link" href="https://www.icann.org/en/help/privacy">Privacy Policy</a>
+                <a style="font-size: .75rem" class="nav-link" href="https://www.icann.org/privacy/tos">Terms of Service</a>
+                <a style="font-size: .75rem" class="nav-link" href="https://www.icann.org/privacy/cookies">Cookies Policy</a>
+
+
+
+
+            </nav>
+        </div>
+    <div class="col-lg-2 col-md-12">
+        <nav class="nav fs-6 justify-content-center d-lg-none d-sm-flex">
+            <a class="p-2 hov-x" href="https://twitter.com/ICANN" rel="noopener" target="_blank" aria-label="ICANN.org X"><i class="bi bi-twitter-x"></i></a>
+            <a class="p-2 hov-facebook" href="https://www.facebook.com/icannorg" rel="noopener" target="_blank" aria-label="ICANN.org Facebook"><i class="bi bi-facebook"></i></a>
+            <a class="p-2 hov-instagram" href="https://www.instagram.com/icannorg" rel="noopener" target="_blank" aria-label="ICANN.org Instagram"><i class="bi bi-instagram"></i></a>
+
+            <a class="p-2 hov-linkedin" href="https://www.linkedin.com/company/icann" rel="noopener" target="_blank" aria-label="ICANN.org LinkedIn"><i class="bi bi-linkedin"></i></a>
+            <a class="p-2 hov-youtube" href="https://www.youtube.com/user/icannnews" rel="noopener" target="_blank" aria-label="ICANN.org YouTube"><i class="bi bi-youtube"></i></a>
+            <a style='padding:.3rem !important' class="p-2 hov-flickr" href="https://www.flickr.com/photos/icann" rel="noopener" target="_blank" aria-label="ICANN.org Flickr"><svg xmlns="http://www.w3.org/2000/svg" height="18" width="18" viewBox="0 0 448 512"><path fill="#007bc1" d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM144.5 319c-35.1 0-63.5-28.4-63.5-63.5s28.4-63.5 63.5-63.5 63.5 28.4 63.5 63.5-28.4 63.5-63.5 63.5zm159 0c-35.1 0-63.5-28.4-63.5-63.5s28.4-63.5 63.5-63.5 63.5 28.4 63.5 63.5-28.4 63.5-63.5 63.5z"/></svg></a>
+
+        </nav>
+    </div>
+
+    </div>
+</div>
+<div class="container sticky-bottom">
+<button type="button" aria-label="Back to top" class="btn btn-danger btn-floating btn-lg position-absolute bottom-0 end-0 sticky-bottom" id="btn-back-to-top">
+    <i class="bi bi-arrow-up"></i>
+</button>
+</div>
+
+<script>
+    //Get the button
+    let mybutton = document.getElementById("btn-back-to-top");
+
+    // When the user scrolls down 20px from the top of the document, show the button
+    window.onscroll = function () {
+        scrollFunction();
+    };
+
+    function scrollFunction() {
+        if (
+            document.body.scrollTop > 20 ||
+            document.documentElement.scrollTop > 20
+        ) {
+            mybutton.style.display = "block";
+        } else {
+            mybutton.style.display = "none";
+        }
+    }
+    // When the user clicks on the button, scroll to the top of the document
+    mybutton.addEventListener("click", backToTop);
+
+    function backToTop() {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+    }
+</script>
+
+<script src="/assets/bootstrap.bundle.min.js"></script>
+</body>
+</html>
