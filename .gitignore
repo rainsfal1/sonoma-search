@@ -1,3 +1,4 @@
 /target
 /crawler/crawled_pages
 /.idea
+.env
