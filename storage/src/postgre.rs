@@ -1,5 +1,5 @@
 use sqlx::{postgres::{PgPool, PgPoolOptions}};
-use crate::models::{Webpage, Link};
+use crate::storage::{Webpage, Link};
 use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
@@ -35,23 +35,23 @@ impl PostgresStorage {
         let mut transaction = self.pool.begin().await?;
 
         sqlx::query!(
-            r#"
-            INSERT INTO webpages (id, url, title, content, html_content, fetch_timestamp, last_updated_timestamp, status, content_hash, metadata)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (url) DO UPDATE
-            SET title = $3, content = $4, html_content = $5, last_updated_timestamp = $7, status = $8, content_hash = $9, metadata = $10
-            "#,
-            webpage.id,
-            webpage.url,
-            webpage.title,
-            webpage.content,
-            webpage.html_content,
-            webpage.fetch_timestamp,
-            webpage.last_updated_timestamp,
-            webpage.status.map(|s| s.to_string()),
-            webpage.content_hash,
-            webpage.metadata.as_ref().map(|m| serde_json::to_value(m).unwrap()),
-        )
+        r#"
+        INSERT INTO webpages (id, url, title, content, html_content, fetch_timestamp, last_updated_timestamp, status, content_hash, metadata)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (url) DO UPDATE
+        SET title = $3, content = $4, html_content = $5, last_updated_timestamp = $7, status = $8, content_hash = $9, metadata = $10
+        "#,
+        webpage.id,
+        webpage.url,
+        webpage.title,
+        webpage.content,
+        webpage.html_content,
+        webpage.fetch_timestamp,
+        webpage.last_updated_timestamp,
+        webpage.status,
+        webpage.content_hash,
+        webpage.metadata.as_ref().map(|m| serde_json::to_value(m).unwrap()),
+    )
             .execute(&mut *transaction)
             .await?;
 
@@ -64,25 +64,32 @@ impl PostgresStorage {
         Ok(())
     }
 
-    pub async fn save_link(&self, transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>, link: &Link) -> Result<(), StorageError> {
+    pub async fn save_link(
+        &self,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        link: &Link
+    ) -> Result<(), StorageError> {
         sqlx::query!(
-            r#"
-            INSERT INTO links (id, source_webpage_id, target_url, anchor_text, is_internal)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE
-            SET source_webpage_id = $2, target_url = $3, anchor_text = $4, is_internal = $5
-            "#,
-            link.id as Uuid,
-            link.source_webpage_id,
-            link.target_url,
-            link.anchor_text,
-            link.is_internal,
-        )
+    r#"
+    INSERT INTO links (id, source_webpage_id, target_url, anchor_text, is_internal)
+    VALUES ($1, $2, $3::TEXT, $4, $5)
+    ON CONFLICT (source_webpage_id, target_url)
+    DO UPDATE
+    SET anchor_text = EXCLUDED.anchor_text,
+        is_internal = EXCLUDED.is_internal
+    "#,
+    link.id as Uuid,
+    link.source_webpage_id,
+    link.target_url.as_str(),
+    link.anchor_text,
+    link.is_internal,
+)
             .execute(&mut **transaction)
             .await?;
 
         Ok(())
     }
+
 
     pub async fn get_webpage(&self, url: &str) -> Result<Option<Webpage>, StorageError> {
         let webpage: Option<Webpage> = sqlx::query!(
@@ -103,7 +110,7 @@ impl PostgresStorage {
                 html_content: row.html_content,
                 fetch_timestamp: row.fetch_timestamp,
                 last_updated_timestamp: row.last_updated_timestamp,
-                status: row.status.and_then(|s| s.parse().ok()),
+                status: Some(row.status),
                 content_hash: row.content_hash,
                 metadata: row.metadata,
                 links: Vec::new(),
@@ -159,10 +166,10 @@ impl PostgresStorage {
                 html_content: row.html_content,
                 fetch_timestamp: row.fetch_timestamp,
                 last_updated_timestamp: row.last_updated_timestamp,
-                status: row.status.and_then(|s| s.parse().ok()),
+                status: Some(row.status),
                 content_hash: row.content_hash,
                 metadata: row.metadata,
-                links: Vec::new(), // Initialize with an empty vector
+                links: Vec::new(),
             })
             .collect();
 

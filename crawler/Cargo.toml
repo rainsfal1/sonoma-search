@@ -24,6 +24,6 @@ http = "1.1.0"
 lazy_static = "1.5.0"
 dotenv = "0.15.0"
 storage = { path = "../storage" }
-uuid = { version = "1.10.0", features = ["serde", "v8"] }
+uuid = { version = "1.10.0", features = ["serde", "v4"] }
 sqlx = { version = "0.8.2", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
 chrono = { version = "0.4.38", features = ["serde"] }

@@ -1,6 +1,6 @@
 pub mod postgre;
-mod models;
+mod storage;
 
-pub use models::Webpage;
-pub use models::Link;
+pub use storage::Webpage;
+pub use storage::Link;
 pub use postgre::PostgresStorage;
