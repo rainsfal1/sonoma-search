@@ -1,23 +1,29 @@
-// use tokio::sync::Semaphore;
-// use std::sync::Arc;
-// use tokio::task;
-//
-// #[tokio::main]
-// async fn main() {
-//     let semaphore = Arc::new(Semaphore::new(3)); // Semaphore with 3 permits
-//     let mut handles = vec![];
-//
-//     for _ in 0..5 {
-//         let permit = Arc::clone(&semaphore);
-//         let handle = task::spawn(async move {
-//             let _permit = permit.acquire().await.unwrap(); // Acquiring a permit
-//             println!("Acquired permit");
-//             // Critical section
-//         });
-//         handles.push(handle);
-//     }
-//
-//     for handle in handles {
-//         handle.await.unwrap();
-//     }
-// }
+// main.rs
+
+use std::error::Error;
+use tokio::main;
+use crate::config::Config;
+use crate::indexer::Indexer;
+
+mod config;
+mod document;
+mod indexer;
+mod schema;
+mod batch_processor;
+mod tokenizer;
+mod storage;
+
+#[main]
+async fn main() {
+    match run().await {
+        Ok(_) => println!("Indexing completed successfully."),
+        Err(e) => eprintln!("Error occurred: {}", e),
+    }
+}
+
+async fn run() -> Result<(), Box<dyn Error>> {
+    let config = Config::new()?;
+    let mut indexer = Indexer::new(config)?;
+    indexer.run().await?;
+    Ok(())
+}

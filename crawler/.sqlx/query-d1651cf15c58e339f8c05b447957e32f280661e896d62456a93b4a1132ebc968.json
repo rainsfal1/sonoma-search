@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO links (id, source_webpage_id, target_url, anchor_text, is_internal)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (id) DO UPDATE\n            SET source_webpage_id = $2, target_url = $3, anchor_text = $4, is_internal = $5\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d1651cf15c58e339f8c05b447957e32f280661e896d62456a93b4a1132ebc968"
+}
