@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    INSERT INTO links (id, source_webpage_id, target_url, anchor_text, is_internal)\n    VALUES ($1, $2, $3::TEXT, $4, $5)\n    ON CONFLICT (source_webpage_id, target_url)\n    DO UPDATE\n    SET anchor_text = EXCLUDED.anchor_text,\n        is_internal = EXCLUDED.is_internal\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b52a42af4564d3d7a63fd1d24156fb7f621279f5d85d4705c27c9720c3628011"
+}

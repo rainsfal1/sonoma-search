@@ -1,3 +1,4 @@
+//model.rs
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
@@ -30,7 +31,7 @@ pub struct Link {
 impl Webpage {
     pub fn new(url: String) -> Self {
         Self {
-            id: Uuid::new_v8([0; 16]),
+            id: Uuid::new_v4(),
             url,
             title: None,
             content: None,
