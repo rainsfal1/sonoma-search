@@ -95,7 +95,7 @@ impl Crawler {
         let parsed_page = parser::parse_webpage(content, url, status)?;
 
         let webpage = Webpage {
-            id: Uuid::new_v4(),
+            id: Uuid::new_v8([0; 16]),
             url: parsed_page.url,
             title: parsed_page.title,
             content: parsed_page.content,
@@ -119,7 +119,7 @@ impl Crawler {
 
         for link in links {
             let db_link = Link {
-                id: Uuid::new_v4(),
+                id: Uuid::new_v8([0; 16]),
                 source_webpage_id: webpage.id,
                 target_url: link.target_url.clone(),
                 anchor_text: link.anchor_text,
