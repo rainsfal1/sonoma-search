@@ -37,7 +37,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
     let storage = PostgresStorage::new(&database_url).await?;
 
     // Pass the client, config, and storage to the Crawler
-    let crawler = Crawler::new(client, config, storage).await;
+    let crawler = Crawler::new(client, config, storage);
 
     // Start the crawl process
     crawler.crawl().await?;
