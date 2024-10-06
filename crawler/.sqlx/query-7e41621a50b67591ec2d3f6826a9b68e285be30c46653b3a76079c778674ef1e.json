@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id as \"id: Uuid\", source_webpage_id, target_url, anchor_text, is_internal\n            FROM links\n            WHERE source_webpage_id = $1\n            ",
+  "query": "\n            SELECT \n                id as \"id!: Uuid\",\n                source_webpage_id as \"source_webpage_id!: Uuid\",\n                target_url,\n                anchor_text,\n                is_internal\n            FROM links\n            WHERE source_webpage_id = $1\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id: Uuid",
+        "name": "id!: Uuid",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "source_webpage_id",
+        "name": "source_webpage_id!: Uuid",
         "type_info": "Uuid"
       },
       {
@@ -36,11 +36,11 @@
     },
     "nullable": [
       false,
-      false,
+      true,
       false,
       true,
-      false
+      true
     ]
   },
-  "hash": "3e3c9a57543fd098d96c22152c21dd374dccc1ac0679cf25189aaa523b98e6b0"
+  "hash": "7e41621a50b67591ec2d3f6826a9b68e285be30c46653b3a76079c778674ef1e"
 }

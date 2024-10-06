@@ -70,20 +70,21 @@ impl PostgresStorage {
         link: &Link
     ) -> Result<(), StorageError> {
         sqlx::query!(
-    r#"
-    INSERT INTO links (id, source_webpage_id, target_url, anchor_text, is_internal)
-    VALUES ($1, $2, $3::TEXT, $4, $5)
-    ON CONFLICT (source_webpage_id, target_url)
-    DO UPDATE
-    SET anchor_text = EXCLUDED.anchor_text,
-        is_internal = EXCLUDED.is_internal
-    "#,
-    link.id as Uuid,
-    link.source_webpage_id,
-    link.target_url.as_str(),
-    link.anchor_text,
-    link.is_internal,
-)
+        r#"
+        INSERT INTO links (id, source_webpage_id, target_url, anchor_text, is_internal)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (id) DO UPDATE
+        SET source_webpage_id = EXCLUDED.source_webpage_id,
+            target_url = EXCLUDED.target_url,
+            anchor_text = EXCLUDED.anchor_text,
+            is_internal = EXCLUDED.is_internal
+        "#,
+        link.id,
+        link.source_webpage_id,
+        link.target_url,
+        link.anchor_text,
+        link.is_internal,
+    )
             .execute(&mut **transaction)
             .await?;
 
@@ -110,7 +111,7 @@ impl PostgresStorage {
                 html_content: row.html_content,
                 fetch_timestamp: row.fetch_timestamp,
                 last_updated_timestamp: row.last_updated_timestamp,
-                status: Some(row.status),
+                status: row.status,
                 content_hash: row.content_hash,
                 metadata: row.metadata,
                 links: Vec::new(),
@@ -129,7 +130,12 @@ impl PostgresStorage {
         let links = sqlx::query_as!(
             Link,
             r#"
-            SELECT id as "id: Uuid", source_webpage_id, target_url, anchor_text, is_internal
+            SELECT 
+                id as "id!: Uuid",
+                source_webpage_id as "source_webpage_id!: Uuid",
+                target_url,
+                anchor_text,
+                is_internal
             FROM links
             WHERE source_webpage_id = $1
             "#,
@@ -166,7 +172,7 @@ impl PostgresStorage {
                 html_content: row.html_content,
                 fetch_timestamp: row.fetch_timestamp,
                 last_updated_timestamp: row.last_updated_timestamp,
-                status: Some(row.status),
+                status: row.status,
                 content_hash: row.content_hash,
                 metadata: row.metadata,
                 links: Vec::new(),

@@ -87,7 +87,6 @@ impl Crawler {
                 }
             }
         }
-
         urls_to_fetch
     }
 
