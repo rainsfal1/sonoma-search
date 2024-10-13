@@ -121,29 +121,6 @@ impl PostgresStorage {
     Ok(webpage)
     }
 
-
-    // async fn get_links_for_webpage(&self, webpage_id: Uuid) -> Result<Vec<Link>, StorageError> {
-    //     let links = sqlx::query_as!(
-    //         Link,
-    //         r#"
-    //         SELECT 
-    //             id as "id!: Uuid",
-    //             source_webpage_id as "source_webpage_id!: Uuid",
-    //             target_url,
-    //             anchor_text
-    //         FROM links
-    //         WHERE source_webpage_id = $1
-    //         "#,
-    //         webpage_id
-    //     )
-    //     .fetch_all(&*self.pool)
-    //     .await?;
-
-    //     Ok(links)
-    // }
-
-    // Initialize with an empty vector
-
     pub async fn search_webpages(&self, query: &str, limit: i64) -> Result<Vec<Webpage>, StorageError> {
         let webpages = sqlx::query!(
         r#"
@@ -229,28 +206,4 @@ impl PostgresStorage {
         Ok(webpages)
     }
 
-    // async fn fetch_links_for_webpage(&self, webpage_id: Uuid) -> Result<Vec<Link>, StorageError> {
-    //     let links = sqlx::query!(
-    //         r#"
-    //         SELECT id, source_webpage_id, target_url, anchor_text
-    //         FROM links
-    //         WHERE source_webpage_id = $1
-    //         "#,
-    //         webpage_id
-    //     )
-    //     .fetch_all(&*self.pool)
-    //     .await?
-    //     .into_iter()
-    //     .filter_map(|row| {
-    //         row.source_webpage_id.map(|source_id| Link {
-    //             id: row.id,
-    //             source_webpage_id: source_id,
-    //             target_url: row.target_url,
-    //             anchor_text: row.anchor_text,
-    //         })
-    //     })
-    //     .collect();
-
-    //     Ok(links)
-    // }
 }
