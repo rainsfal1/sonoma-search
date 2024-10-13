@@ -3,7 +3,7 @@ use thiserror::Error;
 use url::{Url, ParseError};
 use sha2::{Sha256, Digest};
 use chrono::{DateTime, Utc};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 #[derive(Error, Debug)]
 pub enum ParserError {
@@ -17,44 +17,50 @@ pub enum ParserError {
 
 pub struct ParsedWebpage {
     pub url: String,
+    pub domain: String,
     pub title: Option<String>,
     pub content: Option<String>,
-    pub html_content: String,
     pub fetch_timestamp: DateTime<Utc>,
     pub last_updated_timestamp: Option<DateTime<Utc>>,
     pub status: Option<i32>,
     pub content_hash: String,
     pub metadata: Option<Value>,
     pub links: Vec<ParsedLink>,
+    pub meta_title: Option<String>,
+    pub meta_description: Option<String>,
+    pub meta_keywords: Option<String>,
 }
 
 pub struct ParsedLink {
     pub target_url: String,
     pub anchor_text: Option<String>,
-    pub is_internal: bool,
 }
 
 pub fn parse_webpage(html: &str, url: &str, status: i32) -> Result<ParsedWebpage, ParserError> {
-    let parsed_html = Html::parse_document(html);
-    let base_url = Url::parse(url)?;
+    let document = Html::parse_document(html);
+    let parsed_url = Url::parse(url)?;
+    let domain = parsed_url.domain().unwrap_or("").to_string();
 
-    let title = extract_title(&parsed_html);
-    let content = extract_content(&parsed_html);
-    let links = extract_links(&parsed_html, &base_url)?;
+    let title = extract_title(&document);
+    let content = extract_content(&document); // This is still full content, to be summarized later
+    let links = extract_links(&document, &parsed_url)?;
     let content_hash = calculate_hash(html);
-    let metadata = extract_metadata(&parsed_html);
+    let (meta_title, meta_description, meta_keywords, other_metadata) = extract_metadata(&document);
 
     Ok(ParsedWebpage {
         url: url.to_string(),
+        domain,
         title,
-        content,
-        html_content: html.to_string(),
+        content, // This will be summarized in the crawler
         fetch_timestamp: Utc::now(),
-        last_updated_timestamp: None, // This would typically be set when updating an existing record
+        last_updated_timestamp: None,
         status: Some(status),
         content_hash,
-        metadata,
+        metadata: other_metadata,
         links,
+        meta_title,
+        meta_description,
+        meta_keywords,
     })
 }
 
@@ -66,11 +72,9 @@ fn extract_links(parsed_html: &Html, base_url: &Url) -> Result<Vec<ParsedLink>, 
         if let Some(href) = element.value().attr("href") {
             if let Ok(resolved_url) = base_url.join(href) {
                 let anchor_text = element.text().collect::<String>().trim().to_string();
-                let is_internal = is_internal_link(base_url, &resolved_url);
                 links.push(ParsedLink {
                     target_url: resolved_url.into(),
                     anchor_text: Some(anchor_text).filter(|s| !s.is_empty()),
-                    is_internal,
                 });
             }
         }
@@ -122,6 +126,7 @@ fn extract_content(parsed_html: &Html) -> Option<String> {
     // Remove extra whitespace and trim
     let content = content
         .split_whitespace()
+        .take(1000) 
         .collect::<Vec<_>>()
         .join(" ")
         .trim()
@@ -137,40 +142,40 @@ fn calculate_hash(content: &str) -> String {
     result.iter().map(|byte| format!("{:02x}", byte)).collect()
 }
 
-fn is_internal_link(base_url: &Url, link_url: &Url) -> bool {
-    base_url.host() == link_url.host()
+fn extract_metadata(document: &Html) -> (Option<String>, Option<String>, Option<String>, Option<Value>) {
+    let meta_title = document.select(&Selector::parse("meta[property='og:title']").unwrap())
+        .next()
+        .and_then(|el| el.value().attr("content"))
+        .map(|s| s.to_string())
+        .or_else(|| document.select(&Selector::parse("title").unwrap()).next().map(|el| el.inner_html()));
+
+    let meta_description = document.select(&Selector::parse("meta[name='description']").unwrap())
+        .next()
+        .and_then(|el| el.value().attr("content"))
+        .map(|s| s.to_string());
+
+    let meta_keywords = document.select(&Selector::parse("meta[name='keywords']").unwrap())
+        .next()
+        .and_then(|el| el.value().attr("content"))
+        .map(|s| s.to_string());
+
+    let other_metadata = extract_other_metadata(document);
+
+    (meta_title, meta_description, meta_keywords, other_metadata)
 }
 
-fn extract_metadata(parsed_html: &Html) -> Option<Value> {
-    let mut metadata = serde_json::Map::new();
-
-    // Extract Open Graph metadata
-    let og_selector = Selector::parse("meta[property^='og:']").unwrap();
-    for element in parsed_html.select(&og_selector) {
-        if let (Some(property), Some(content)) = (element.value().attr("property"), element.value().attr("content")) {
-            metadata.insert(property.to_string(), Value::String(content.to_string()));
+fn extract_other_metadata(document: &Html) -> Option<Value> {
+    let mut metadata = json!({});
+    if let Some(lang) = document.select(&Selector::parse("html[lang]").unwrap()).next() {
+        if let Some(lang_value) = lang.value().attr("lang") {
+            metadata["language"] = json!(lang_value);
         }
     }
-
-    // Extract Twitter Card metadata
-    let twitter_selector = Selector::parse("meta[name^='twitter:']").unwrap();
-    for element in parsed_html.select(&twitter_selector) {
-        if let (Some(name), Some(content)) = (element.value().attr("name"), element.value().attr("content")) {
-            metadata.insert(name.to_string(), Value::String(content.to_string()));
-        }
-    }
-
-    // Extract other relevant metadata (e.g., description, keywords)
-    let meta_selector = Selector::parse("meta[name='description'], meta[name='keywords']").unwrap();
-    for element in parsed_html.select(&meta_selector) {
-        if let (Some(name), Some(content)) = (element.value().attr("name"), element.value().attr("content")) {
-            metadata.insert(name.to_string(), Value::String(content.to_string()));
-        }
-    }
-
-    if metadata.is_empty() {
+    // Add more metadata extraction as needed
+    if metadata.as_object().unwrap().is_empty() {
         None
     } else {
-        Some(Value::Object(metadata))
+        Some(metadata)
     }
 }
+

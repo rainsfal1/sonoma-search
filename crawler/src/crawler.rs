@@ -2,6 +2,8 @@ use crate::fetcher::{self, CrawlerError};
 use crate::robots::RobotsChecker;
 use crate::config::Config;
 use crate::parser;
+use crate::summarizer;
+use log::{error, warn, info, debug};
 
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
@@ -35,6 +37,8 @@ impl Crawler {
     }
 
     pub async fn crawl(&self) -> Result<(), Box<dyn Error>> {
+        info!("Starting crawl process");
+        debug!("Initial URL: {}", self.config.start_url);
         let start_url = normalize_url(&self.config.start_url)?;
         self.queue.lock().await.push_back((start_url, 0));
 
@@ -56,10 +60,10 @@ impl Crawler {
                     Ok((content, status)) => {
                         println!("Crawled: {} (Status: {})", url, status);
                         if let Err(e) = self.process_page(&url, &content, status.as_u16() as i32, depth).await {
-                            eprintln!("Error processing page {}: {:?}", url, e);
+                            warn!("Error processing URL {}: {}", url, e);
                         }
                     }
-                    Err(e) => eprintln!("Failed to fetch page {}: {:?}", url, e),
+                    Err(e) => error!("Failed to fetch page {}: {:?}", url, e),
                 }
             }
 
@@ -72,6 +76,7 @@ impl Crawler {
     }
 
     async fn get_urls_to_fetch(&self) -> Vec<(String, usize)> {
+        debug!("Fetching new URLs to crawl");
         let mut urls_to_fetch = Vec::new();
         let mut queue = self.queue.lock().await;
         let visited = self.visited.lock().await;
@@ -91,20 +96,25 @@ impl Crawler {
     }
 
     async fn process_page(&self, url: &str, content: &str, status: i32, depth: usize) -> Result<(), Box<dyn Error>> {
+        debug!("Processing page: {} (status: {}, depth: {})", url, status, depth);
         let parsed_page = parser::parse_webpage(content, url, status)?;
+        let summary = summarizer::tfidf_summary(&parsed_page.content.unwrap_or_default(), 3);
 
         let webpage = Webpage {
             id: Uuid::new_v4(),
-            url: parsed_page.url,
+            url: parsed_page.url.clone(),
+            domain: parsed_page.domain,
             title: parsed_page.title,
-            content: parsed_page.content,
-            html_content: Some(parsed_page.html_content),
+            content_summary: Some(summary),
             fetch_timestamp: parsed_page.fetch_timestamp,
             last_updated_timestamp: parsed_page.last_updated_timestamp,
             status: parsed_page.status,
             content_hash: Some(parsed_page.content_hash),
             metadata: parsed_page.metadata,
-            links: Vec::new()
+            links: Vec::new(),
+            meta_title: parsed_page.meta_title,
+            meta_description: parsed_page.meta_description,
+            meta_keywords: parsed_page.meta_keywords,
         };
 
         self.storage.save_webpage(&webpage).await?;
@@ -122,7 +132,6 @@ impl Crawler {
                 source_webpage_id: webpage.id,
                 target_url: link.target_url.clone(),
                 anchor_text: link.anchor_text,
-                is_internal: Some(link.is_internal),
             };
 
             self.storage.save_link(&mut transaction, &db_link).await?;
@@ -142,7 +151,31 @@ impl Crawler {
 }
 
 pub fn normalize_url(url: &str) -> Result<String, CrawlerError> {
-    let mut parsed_url = Url::parse(url).map_err(|e| CrawlerError::UrlNormalizationError(e.to_string()))?;
-    parsed_url.set_fragment(None);
-    Ok(parsed_url.as_str().trim_end_matches('/').to_lowercase())
+    let parsed = Url::parse(url).map_err(|e| CrawlerError::UrlNormalizationError(e.to_string()))?;
+    let mut normalized = parsed.clone();
+
+    // Remove default ports
+    if (parsed.scheme() == "http" && parsed.port() == Some(80)) ||
+       (parsed.scheme() == "https" && parsed.port() == Some(443)) {
+        normalized.set_port(None).ok();
+    }
+
+    // Remove trailing slash
+    let path = normalized.path().to_string();
+    let trimmed_path = path.trim_end_matches('/');
+    normalized.set_path(trimmed_path);
+
+    // Sort query parameters
+    if let Some(query) = normalized.query() {
+        let mut params: Vec<(String, String)> = url::form_urlencoded::parse(query.as_bytes())
+            .into_owned()
+            .collect();
+        params.sort_by(|a, b| a.0.cmp(&b.0));
+        normalized.set_query(Some(&url::form_urlencoded::Serializer::new(String::new())
+            .extend_pairs(params)
+            .finish()));
+    }
+
+    // Convert to lowercase
+    Ok(normalized.to_string().to_lowercase())
 }
