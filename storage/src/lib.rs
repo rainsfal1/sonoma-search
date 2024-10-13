@@ -1,6 +1,6 @@
 pub mod postgre;
-mod storage;
+mod schema;
 
-pub use storage::Webpage;
-pub use storage::Link;
+pub use schema::Webpage;
+pub use schema::Link;
 pub use postgre::PostgresStorage;

@@ -3,17 +3,21 @@ mod crawler;
 mod fetcher;
 mod parser;
 mod robots;
+mod summarizer;
 
 use std::error::Error;
 use tokio::main;
-use dotenv::dotenv; // Add this line
+use dotenv::dotenv;
 use crate::config::Config;
 use crate::crawler::Crawler;
 use crate::fetcher::create_http_client;
 use storage::PostgresStorage;
+use env_logger::Env;
 
 #[main]
 async fn main() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     // Load environment variables from the .env file
     dotenv().ok();
 

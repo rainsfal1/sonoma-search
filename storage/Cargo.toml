@@ -13,3 +13,4 @@ dotenv = "0.15.0"
 uuid = { version = "1.10.0", features = ["serde", "v4"] }
 sqlx = { version = "0.8.2", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
 chrono = { version = "0.4.38", features = ["serde"] }
+url = "2.5.2"
