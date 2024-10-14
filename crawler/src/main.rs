@@ -39,7 +39,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // Create the HTTP client
     let client = create_http_client()?;
 
-    // Fetch database URL from environment
+    // Fetch storage URL from environment
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     // Initialize the PostgresStorage instance asynchronously
