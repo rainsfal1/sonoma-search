@@ -2,10 +2,6 @@
 resolver = "2"
 members = [
     "crawler",
-    "indexer",
-    "searcher",
-    "ranker",
-    "security",
     "storage"
 ]
 

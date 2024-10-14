@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use structopt::StructOpt;
 use std::error::Error;
+use std::path::Path;
 
 /// Struct `Config` represents the configuration options for a web crawler.
 /// It holds parameters like the start URL, crawl depth, number of pages to fetch,
@@ -81,23 +82,15 @@ impl Config {
     /// 2. The contents of the file are read into a string.
     /// 3. The string is then parsed from TOML format into the `Config` struct using Serde's TOML deserialization.
     /// 4. If successful, the `Config` struct is returned. Otherwise, any encountered error is propagated.
-    pub fn from_file(file_path: &str) -> Result<Self, Box<dyn Error>> {
-        // Step 1: Attempt to open the file at the specified path.
-        // If the file cannot be opened (e.g., it doesn't exist or access is denied),
-        // this will return an error which is propagated via the `?` operator.
-        let mut file = File::open(file_path)?;
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let path = path.as_ref();
 
-        // Step 2: Read the contents of the file into a string.
-        // Initialize an empty string where the file content will be stored.
-        // The `read_to_string` method reads the entire file and loads it into the string.
+        let mut file = File::open(path)?;
+        
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
 
-        // Step 3: Deserialize the file content (TOML format) into the `Config` struct.
-        // The `from_str` method of the TOML deserializer parses the string and maps it to the fields of the `Config` struct.
-        let config = toml::de::from_str(&contents)?;
-
-        // Step 4: Return the successfully deserialized `Config` struct inside a `Result`.
+        let config: Config = toml::from_str(&contents)?;
         Ok(config)
     }
 }
