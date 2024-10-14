@@ -53,4 +53,4 @@ jobs:
           context: .
           file: ./crawler/Dockerfile
           push: true
-          tags: yourusername/search-engine-crawler:${{ github.ref == 'refs/heads/main' && 'latest' || 'develop' }}
+          tags: rainsfal1/search-engine-crawler:${{ github.ref == 'refs/heads/main' && 'latest' || 'develop' }}
