@@ -1,0 +1,69 @@
+name: Crawler CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'crawler/**'
+      - '.github/workflows/components/crawler-ci-cd.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'crawler/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_LOG: info
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            crawler/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        working-directory: ./crawler
+        run: cargo build --verbose
+
+      - name: Run tests
+        working-directory: ./crawler
+        run: cargo test --verbose
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./crawler
+          file: ./docker/Dockerfile.crawler
+          push: true
+          tags: yourusername/search-engine-crawler:${{ github.ref == 'refs/heads/main' && 'latest' || 'develop' }}

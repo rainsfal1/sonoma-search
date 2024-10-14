@@ -87,7 +87,7 @@ impl Indexer {
 
 async fn fetch_documents(tx: mpsc::sender<Vec<Document>>) -> Result<(), IndexerError> {
     // Implement document fetching logic here
-    // This could involve reading from a database, crawling websites, etc.
+    // This could involve reading from a storage, crawling websites, etc.
     // Send batches of documents through the channel
     Ok(())
 }
