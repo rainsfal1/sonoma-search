@@ -37,7 +37,7 @@ impl PostgresStorage {
             INSERT INTO webpages (id, url, domain, title, content_summary, fetch_timestamp, last_updated_timestamp, status, content_hash, metadata, meta_title, meta_description, meta_keywords)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             ON CONFLICT (url) DO UPDATE
-            SET domain = EXCLUDED.domain, 
+            SET domain = EXCLUDED.domain,
                 title = EXCLUDED.title, 
                 content_summary = EXCLUDED.content_summary, 
                 last_updated_timestamp = EXCLUDED.last_updated_timestamp, 
@@ -74,87 +74,86 @@ impl PostgresStorage {
         link: &Link
     ) -> Result<(), StorageError> {
         sqlx::query!(
-        r#"
-        INSERT INTO links (id, source_webpage_id, target_url, anchor_text)
-        VALUES ($1, $2, $3, $4)
-        "#,
-        link.id,
-        link.source_webpage_id,
-        link.target_url,
-        link.anchor_text,
-    )
-            .execute(&mut **transaction)
-            .await?;
+            r#"
+            INSERT INTO links (id, source_webpage_id, target_url, anchor_text)
+            VALUES ($1, $2, $3, $4)
+            "#,
+            link.id,
+            link.source_webpage_id,
+            link.target_url,
+            link.anchor_text,
+        )
+        .execute(&mut **transaction)
+        .await?;
 
         Ok(())
     }
 
-
     pub async fn get_webpage(&self, id: Uuid) -> Result<Option<Webpage>, StorageError> {
         let webpage = sqlx::query!(
-        r#"
-        SELECT id, url, domain, title, content_summary, fetch_timestamp, last_updated_timestamp, status, content_hash, metadata as "metadata: Value", meta_title, meta_description, meta_keywords
-        FROM webpages
-        WHERE id = $1
-        "#,
-        id
-    )
-    .fetch_optional(&*self.pool)
-    .await?
-    .map(|row| Webpage {
-        id: row.id,
-        url: row.url,
-        domain: row.domain,
-        title: row.title,
-        content_summary: row.content_summary,
-        fetch_timestamp: row.fetch_timestamp,
-        last_updated_timestamp: row.last_updated_timestamp,
-        status: row.status,
-        content_hash: row.content_hash,
-        metadata: row.metadata,
-        links: Vec::new(),
-        meta_title: row.meta_title,
-        meta_description: row.meta_description,
-        meta_keywords: row.meta_keywords,
-    });
+            r#"
+            SELECT id, url, domain, title, content_summary, fetch_timestamp, last_updated_timestamp, status, content_hash, metadata as "metadata: Value", meta_title, meta_description, meta_keywords
+            FROM webpages
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&*self.pool)
+        .await?
+        .map(|row| Webpage {
+            id: row.id,
+            url: row.url,
+            domain: row.domain,
+            title: row.title,
+            content_summary: row.content_summary,
+            fetch_timestamp: row.fetch_timestamp,
+            last_updated_timestamp: row.last_updated_timestamp,
+            status: row.status,
+            content_hash: row.content_hash,
+            metadata: row.metadata,
+            links: Vec::new(),
+            meta_title: row.meta_title,
+            meta_description: row.meta_description,
+            meta_keywords: row.meta_keywords,
+        });
 
-    Ok(webpage)
+        Ok(webpage)
     }
 
     pub async fn search_webpages(&self, query: &str, limit: i64) -> Result<Vec<Webpage>, StorageError> {
         let webpages = sqlx::query!(
-        r#"
-        SELECT id, url, domain, title, content_summary, fetch_timestamp, last_updated_timestamp, status, content_hash, metadata as "metadata: Value", meta_title, meta_description, meta_keywords
-        FROM webpages
-        WHERE to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content_summary, '') || ' ' || coalesce(meta_title, '') || ' ' || coalesce(meta_description, '') || ' ' || coalesce(meta_keywords, '')) @@ plainto_tsquery('english', $1)
-        ORDER BY ts_rank(to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content_summary, '') || ' ' || coalesce(meta_title, '') || ' ' || coalesce(meta_description, '') || ' ' || coalesce(meta_keywords, '')), plainto_tsquery('english', $1)) DESC
-        LIMIT $2
-        "#,
-        query,
-        limit
-    )
-    .fetch_all(&*self.pool)
-    .await?
-    .into_iter()
-    .map(|row| Webpage {
-        id: row.id,
-        url: row.url,
-        domain: row.domain,
-        title: row.title,
-        content_summary: row.content_summary,
-        fetch_timestamp: row.fetch_timestamp,
-        last_updated_timestamp: row.last_updated_timestamp,
-        status: row.status,
-        content_hash: row.content_hash,
-        metadata: row.metadata,
-        links: Vec::new(),
-        meta_title: row.meta_title,
-        meta_description: row.meta_description,
-        meta_keywords: row.meta_keywords,
-    })
-    .collect();
+            r#"
+            SELECT id, url, domain, title, content_summary, fetch_timestamp, last_updated_timestamp, status, content_hash, metadata as "metadata: Value", meta_title, meta_description, meta_keywords
+            FROM webpages
+            WHERE to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content_summary, '') || ' ' || coalesce(meta_title, '') || ' ' || coalesce(meta_description, '') || ' ' || coalesce(meta_keywords, '')) @@ plainto_tsquery('english', $1)
+            ORDER BY ts_rank(to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content_summary, '') || ' ' || coalesce(meta_title, '') || ' ' || coalesce(meta_description, '') || ' ' || coalesce(meta_keywords, '')), plainto_tsquery('english', $1)) DESC
+            LIMIT $2
+            "#,
+            query,
+            limit
+        )
+        .fetch_all(&*self.pool)
+        .await?
+        .into_iter()
+        .map(|row| Webpage {
+            id: row.id,
+            url: row.url,
+            domain: row.domain,
+            title: row.title,
+            content_summary: row.content_summary,
+            fetch_timestamp: row.fetch_timestamp,
+            last_updated_timestamp: row.last_updated_timestamp,
+            status: row.status,
+            content_hash: row.content_hash,
+            metadata: row.metadata,
+            links: Vec::new(),
+            meta_title: row.meta_title,
+            meta_description: row.meta_description,
+            meta_keywords: row.meta_keywords,
+        })
+        .collect();
 
-    Ok(webpages)
+        Ok(webpages)
     }
 
     pub async fn delete_webpage(&self, url: &str) -> Result<bool, StorageError> {
@@ -165,8 +164,8 @@ impl PostgresStorage {
             "#,
             url
         )
-            .execute(&*self.pool)
-            .await?;
+        .execute(&*self.pool)
+        .await?;
 
         Ok(result.rows_affected() > 0)
     }
@@ -202,8 +201,7 @@ impl PostgresStorage {
             meta_keywords: row.meta_keywords,
         })
         .collect();
-    
+
         Ok(webpages)
     }
-
 }

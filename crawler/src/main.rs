@@ -13,6 +13,7 @@ use crate::crawler::Crawler;
 use crate::fetcher::create_http_client;
 use storage::PostgresStorage;
 use env_logger::Env;
+use std::path::PathBuf;
 
 #[main]
 async fn main() {
@@ -23,13 +24,17 @@ async fn main() {
 
     match run().await {
         Ok(_) => println!("Crawling completed successfully."),
-        Err(e) => eprintln!("Error occurred: {}", e),
+        Err(e) => eprintln!("Error occurred: {}\n{:?}", e, e),
     }
 }
 
 async fn run() -> Result<(), Box<dyn Error>> {
+    // Print current working directory
+    let current_dir = std::env::current_dir()?;
+
     // Load the configuration for the crawler
-    let config = Config::from_file("crawler/config.toml")?;
+    let config_path = find_config_file(&current_dir);
+    let config = Config::from_file(config_path)?;
 
     // Create the HTTP client
     let client = create_http_client()?;
@@ -47,4 +52,18 @@ async fn run() -> Result<(), Box<dyn Error>> {
     crawler.crawl().await?;
 
     Ok(())
+}
+
+fn find_config_file(current_dir: &PathBuf) -> PathBuf {
+    let mut config_path = current_dir.join("crawler").join("config.toml");
+    if config_path.exists() {
+        return config_path;
+    }
+
+    config_path = current_dir.join("config.toml");
+    if config_path.exists() {
+        return config_path;
+    }
+
+    current_dir.join("crawler").join("config.toml") // Default path if not found
 }
