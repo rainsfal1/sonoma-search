@@ -1,16 +1,16 @@
- name: Crawler CI/CD
+name: Crawler CI/CD
 
 on:
   push:
     branches: [ main, develop ]
     paths:
       - 'crawler/**'
-      - '.github/workflows/crawler-ci-cd.yml'
+      - '.github/workflows/components/crawler-ci-cd.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'crawler/**'
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
