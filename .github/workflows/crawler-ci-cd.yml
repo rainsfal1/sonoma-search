@@ -19,7 +19,8 @@ env:
   RUST_LOG: info
 
 jobs:
-  test:
+  unit-tests:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -28,13 +29,14 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-      - name: Run tests
+      - name: Execute Unit Tests
         run: |
           cd crawler
           cargo test --verbose
 
-  build-and-push:
-    needs: test
+  build-and-deploy:
+    name: Build and Deploy Docker Image
+    needs: unit-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -45,10 +47,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./crawler/Dockerfile
           push: true
-          tags: rainsfal1/search-engine-crawler:${{ github.ref == 'refs/heads/main' && 'latest' || 'develop' }}
+          tags: yourusername/search-engine-crawler:${{ github.ref == 'refs/heads/main' && 'latest' || 'develop' }}
