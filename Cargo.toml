@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "crawler",
     "storage",
-    "indexer"
+    "monitoring"
 ]
 
 # A Rust workspace is a collection of multiple Rust projects
