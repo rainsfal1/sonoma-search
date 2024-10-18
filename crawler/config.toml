@@ -1,5 +1,5 @@
 
-    start_url = "https://example.com/"
+    start_url = "https://github.com/"
     max_depth = 5
     max_pages = 1000
     concurrent_requests = 20
