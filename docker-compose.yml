@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: crawler/Dockerfile
     environment:
-      - DATABASE_URL=postgres://rainsfall:password@postgres:5432/search_engine
+      - DATABASE_URL=postgres://rainsfall:262912@postgres:5432/search_engine
       - METRICS_URL=http://monitoring:8080
     depends_on:
       - postgres
@@ -18,7 +18,7 @@ services:
     image: postgres:13
     environment:
       - POSTGRES_USER=rainsfall
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_PASSWORD=262912
       - POSTGRES_DB=search_engine
     ports:
       - "5434:5432"
