@@ -1,93 +1,252 @@
-use tantivy::{Index, IndexWriter, Document as TantivyDocument, Term};
-use tantivy::schema::{Schema, Field};
-use tantivy::query::QueryParser;
-use tokio::sync::mpsc;
-use futures::StreamExt;
-use rayon::prelude::*;
-use crate::{config::Config, schema::create_schema, document::Document, batch_processor::BatchProcessor};
-use thiserror::Error;
-use crate::storage::IndexStorage;
-use std::sync::Arc;
-
-#[derive(Debug, Error)]
-pub enum IndexerError {
-    #[error("Tantivy error: {0}")]
-    TantivyError(#[from] tantivy::TantivyError),
-    #[error("I/O error: {0}")]
-    IoError(#[from] std::io::Error),
-    #[error("Document processing error: {0}")]
-    DocumentError(#[from] crate::document::DocumentError),
-}
-
-pub struct Indexer {
-    index: Index,
-    writer: IndexWriter,
-    schema: Schema,
-    title_field: Field,
-    content_field: Field,
-    url_field: Field,
-    batch_processor: BatchProcessor,
-}
-
-impl Indexer {
-    pub fn new(config: Config, index_storage: IndexStorage) -> Result<Self, IndexerError> {
-        // ... (initialization code remains the same)
-        todo!()
-    }
-
-    pub async fn run(&mut self) -> Result<(), IndexerError> {
-        let (tx, mut rx) = mpsc::channel(100);
-
-        // Use tokio for I/O-bound document fetching
-        tokio::spawn(fetch_documents(tx));
-
-        while let Some(batch) = rx.recv().await {
-            // Use Rayon for CPU-bound parallel processing of documents
-            let processed_batch: Vec<Document> = batch.par_iter()
-                .map(|doc| self.batch_processor.process_document(doc))
-                .collect::<Result<Vec<_>, _>>()?;
-
-            self.index_batch(processed_batch).await?;
-        }
-
-        self.writer.commit()?;
-        Ok(())
-    }
-
-    async fn index_batch(&mut self, batch: Vec<Document>) -> Result<(), IndexerError> {
-        for doc in batch {
-            let mut tantivy_doc = TantivyDocument::new();
-            tantivy_doc.add_text(self.title_field, &doc.title);
-            tantivy_doc.add_text(self.content_field, &doc.content);
-            tantivy_doc.add_text(self.url_field, &doc.url);
-
-            self.writer.add_document(tantivy_doc)?;
-        }
-        Ok(())
-    }
-    pub fn search(&self, query: &str) -> Result<Vec<TantivyDocument>, IndexerError> {
-        let reader = self.index.reader()?;
-        let searcher = reader.searcher();
-
-        let query_parser = QueryParser::for_index(&self.index, vec![self.title_field, self.content_field]);
-        let query = query_parser.parse_query(query)?;
-
-        let top_docs = searcher.search(&query, &tantivy::collector::TopDocs::with_limit(10))?;
-
-        let mut results = Vec::new();
-        for (_score, doc_address) in top_docs {
-            let retrieved_doc = searcher.doc(doc_address)?;
-            results.push(retrieved_doc);
-        }
-
-        Ok(results)
-    }
-}
-
-
-async fn fetch_documents(tx: mpsc::sender<Vec<Document>>) -> Result<(), IndexerError> {
-    // Implement document fetching logic here
-    // This could involve reading from a storage, crawling websites, etc.
-    // Send batches of documents through the channel
-    Ok(())
-}
+// use std::sync::Arc;
+// use scraper::{Html, Selector};
+// use unicode_segmentation::UnicodeSegmentation;
+// use rust_stemmers::{Algorithm, Stemmer};
+// use stopwords::{Stopwords, Language as StopwordsLanguage, Spark};
+// use regex::Regex;
+// use tokio::sync::Semaphore;
+// use tokio::task;
+// use tokio_postgres;
+// use std::env;
+// use std::time::Duration;
+// use sqlx::postgres::PgPoolOptions;
+// use sqlx::PgPool;
+// use dotenv::dotenv;
+// use anyhow::{anyhow, Result};
+// use chrono::{DateTime, Utc};
+// use log::{info, error};
+// use env_logger;
+// use serde::{Deserialize,Serialize};
+// use uuid::Uuid;
+// use elasticsearch::{Elasticsearch, http::transport::Transport, IndexParts};
+// use serde_json::json;
+//
+// // Struct representing a webpage from the database
+// #[derive(Debug, Serialize, Deserialize)]
+// struct html_Docs{
+//     id: Uuid,
+//     url: String,
+//     content: String,
+//     html_content: String,
+//     title: Option<String>,
+// }
+//
+// // Struct representing a processed document
+// #[derive(Debug, Serialize, Deserialize)]
+// struct processed_doc{
+//     processed_doc_webpage_id: Uuid,
+//     processed_doc_title: Option<String>,
+//     processed_doc_body: Option<String>,
+//     processed_doc_indexed_at: DateTime<Utc>,
+//     processed_doc_metadata: Option<serde_json::Value>,
+//     processed_doc_content_summary: Option<String>,
+//     processed_doc_keywords: Option<Vec<String>>,
+// }
+//
+// // Function to fetch unprocessed documents
+// async fn fetch_unprocessed_docs(pool: &PgPool, limit: i64) -> Result<Vec<html_Docs>> {
+//     let records = sqlx::query_as!(html_Docs,
+//     r#"
+//     SELECT id,url,content,html_content,title
+//     FROM webpages
+//     WHERE processed = FALSE
+//     LIMIT $1
+//     "#,
+//     limit
+//     ).fetch_all(pool).await?;
+//
+//     Ok(records)
+// }
+//
+// // Function to initialize Elasticsearch client
+// async fn get_elasticsearch_client() -> Result<Elasticsearch> {
+//     let transport = Transport::single_node("http://localhost:9200")?; // Adjust URL as necessary
+//     let client = Elasticsearch::new(transport);
+//     Ok(client)
+// }
+//
+// // Function to store processed document in Elasticsearch
+// async fn store_processed_document_in_es(client: &Elasticsearch, processed_doc: &processed_doc) -> Result<()> {
+//     let body = json!({
+//         "webpage_id": processed_doc.processed_doc_webpage_id.to_string(),
+//         "title": processed_doc.processed_doc_title,
+//         "body": processed_doc.processed_doc_body,
+//         "indexed_at": processed_doc.processed_doc_indexed_at,
+//         "metadata": processed_doc.processed_doc_metadata,
+//         "content_summary": processed_doc.processed_doc_content_summary,
+//         "keywords": processed_doc.processed_doc_keywords,
+//     });
+//
+//     let response = client
+//         .index(IndexParts::IndexId("processed_docs", &processed_doc.processed_doc_webpage_id.to_string()))
+//         .body(body)
+//         .send()
+//         .await?;
+//
+//     if !response.status_code().is_success() {
+//         Err(anyhow!("Failed to store document in Elasticsearch"))?;
+//     }
+//
+// <<<<<<< Updated upstream
+// async fn fetch_documents(tx: mpsc::sender<Vec<Document>>) -> Result<(), IndexerError> {
+//     // Implement document fetching logic here
+//     // This could involve reading from a storage, crawling websites, etc.
+//     // Send batches of documents through the channel
+// =======
+// >>>>>>> Stashed changes
+//     Ok(())
+// }
+//
+// // Function to process the content of a document
+// fn process_content(doc: &html_Docs) -> Result<processed_doc>{
+//
+//     let mut parsed_text = String::new();
+//     let document = Html::parse_document(&doc.html_content);
+//     let p_tag_selector = Selector::parse("p").map_err(|e| anyhow!("Invalid selector: {}", e))?;
+//
+//     for i in document.select(&p_tag_selector){
+//         parsed_text.push_str(&i.text().collect::<Vec<_>>().join(" "));
+//     }
+//
+//     let words: Vec<&str> = parsed_text.unicode_words().collect();
+//
+//
+//     let lower_words: Vec<String> = words
+//         .iter()
+//         .map(|w| w.to_lowercase())
+//         .collect();
+//
+//
+//     let stop_words = Spark::stopwords(StopwordsLanguage::English)
+//         .ok_or_else(||anyhow!("Failed to load stop words"))?;
+//
+//
+//     let filter_words: Vec<&str> = lower_words
+//         .iter()
+//         .filter(|w| !stop_words.contains(&w.as_str()))
+//         .map(|w| w.as_str())
+//         .collect();
+//
+//
+//     let stemmer = Stemmer::create(Algorithm::English);
+//     let stem_words: Vec<String> = filter_words
+//         .iter()
+//         .map(|w| stemmer.stem(w).to_string())
+//         .collect();
+//
+//
+//     let rex = Regex::new(r"\W+").map_err(|e| anyhow!("Invalid regex: {}", e))?;
+//     let processed_tokens: Vec<String> = stem_words
+//         .iter()
+//         .map(|w| rex.replace_all(w, "").to_string())
+//         .filter(|w| !w.is_empty())
+//         .collect();
+//
+//     Ok(processed_doc {
+//         processed_doc_webpage_id: doc.id,
+//         processed_doc_title: doc.title.clone(),
+//         processed_doc_body: Some(processed_tokens.join(" ")),
+//         processed_doc_indexed_at: Utc::now(),
+//         processed_doc_metadata: None, // Can be filled with actual metadata
+//         processed_doc_content_summary: None,      // Can implement summarization
+//         processed_doc_keywords: Some(processed_tokens.clone()), // Example, can extract keywords differently
+//     })
+// }
+//
+// async fn mark_as_processed(pool: &PgPool, doc_id: Uuid) -> Result<()> {
+//     sqlx::query!(
+//         r#"
+//         UPDATE webpages
+//         SET processed = TRUE
+//         WHERE id = $1
+//         "#,
+//         doc_id
+//     )
+//         .execute(&pool)
+//         .await?;
+//
+//     Ok(())
+// }
+//
+// // Modify concurrent processing to store in Elasticsearch
+// async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -> Result<()> {
+//     let semaphore = Arc::new(Semaphore::new(10));
+//     let documents = fetch_unprocessed_docs(&pool, 10).await?;
+//
+//     if documents.is_empty() {
+//         info!("No documents available");
+//         return Ok(());
+//     }
+//
+//     info!("Processing {} documents", documents.len());
+//
+//     let mut handles = vec![];
+//
+//     for doc in documents {
+//         let pool = pool.clone();
+//         let sem = semaphore.clone();
+//         let client = client.clone();
+//
+//         let handle = tokio::spawn(async move {
+//             let _permit = match sem.acquire().await {
+//                 Ok(permit) => permit,
+//                 Err(e) => {
+//                     error!("Failed to acquire permit: {}", e);
+//                     return;
+//                 }
+//             };
+//
+//             match process_content(&doc) {
+//                 Ok(processed_doc) => {
+//                     // Store processed document in Elasticsearch
+//                     if let Err(e) = store_processed_document_in_es(&client, &processed_doc).await {
+//                         error!("Error storing processed_doc {}: {}", doc.id, e);
+//                     } else {
+//                         // Mark as processed in PostgreSQL
+//                         if let Err(e) = mark_as_processed(&pool, doc.id).await {
+//                             error!("Error marking webpage {} as processed: {}", doc.id, e);
+//                         } else {
+//                             info!("Successfully processed webpage {}", doc.id);
+//                         }
+//                     }
+//                 },
+//                 Err(e) => {
+//                     error!("Error processing doc {}: {}", doc.id, e);
+//                 }
+//             }
+//         });
+//         handles.push(handle);
+//     }
+//
+//     for handle in handles {
+//         if let Err(e) = handle.await {
+//             error!("Error: {:?}", e);
+//         }
+//     }
+//
+//     Ok(())
+// }
+//
+// #[tokio::main]
+// async fn main() -> Result<()> {
+//     dotenv().ok();
+//     env_logger::init();
+//     let database_URL = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+//
+//     let pool = PgPoolOptions::new()
+//         .max_connections(15)
+//         .connect(&database_URL)
+//         .await?;
+//
+//     // Initialize Elasticsearch client
+//     let es_client = Arc::new(get_elasticsearch_client().await?);
+//
+//     loop {
+//         let client_clone = Arc::clone(&es_client); // Cloning the Arc, not the client itself
+//         if let Err(e) = concurrent_process_docs(pool.clone(), client_clone).await {
+//             error!("Error processing docs: {}", e);
+//         }
+//
+//         tokio::time::sleep(Duration::from_secs(5)).await;
+//     }
+// }
