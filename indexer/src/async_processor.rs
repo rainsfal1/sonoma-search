@@ -3,10 +3,11 @@ use anyhow::Result;
 use tokio::sync::Semaphore;
 use sqlx::PgPool;
 use elasticsearch::Elasticsearch;
-use crate::postgre_functions::{fetch_unprocessed_docs, mark_as_processed};
+use crate::db_indexer::{fetch_unprocessed_docs, mark_as_processed};
 use crate::elastic_search_storage::store_processed_document_in_es;
 use crate::content_processing::process_content;
 use log::{info, error};
+use uuid::Uuid;
 
 pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -> Result<()> {
     let semaphore = Arc::new(Semaphore::new(10));
@@ -26,6 +27,8 @@ pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -
         let sem = semaphore.clone();
         let client = client.clone();
 
+        let doc_uuid = Uuid::from_bytes(*doc.id.as_bytes());
+
         let handle = tokio::spawn(async move {
             let _permit = match sem.acquire().await {
                 Ok(permit) => permit,
@@ -38,17 +41,17 @@ pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -
             match process_content(&doc) {
                 Ok(processed_doc) => {
                     if let Err(e) = store_processed_document_in_es(&client, &processed_doc).await {
-                        error!("Error storing processed_doc {}: {}", doc.id, e);
+                        error!("Error storing processed_doc {}: {}", doc_uuid, e);
                     } else {
-                        if let Err(e) = mark_as_processed(&pool, doc.id).await {
-                            error!("Error marking webpage {} as processed: {}", doc.id, e);
+                        if let Err(e) = mark_as_processed(&pool, doc_uuid).await {
+                            error!("Error marking webpage {} as processed: {}", doc_uuid, e);
                         } else {
-                            info!("Successfully processed webpage {}", doc.id);
+                            info!("Successfully processed webpage {}", doc_uuid);
                         }
                     }
                 },
                 Err(e) => {
-                    error!("Error processing doc {}: {}", doc.id, e);
+                    error!("Error processing doc {}: {}", doc_uuid, e);
                 }
             }
         });

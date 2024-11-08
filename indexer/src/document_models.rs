@@ -1,18 +1,20 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct html_Docs {
+pub struct HtmlDocs {
     pub id: Uuid,
     pub url: String,
-    pub content: String,
-    pub html_content: String,
+    pub content_summary: Option<String>,
     pub title: Option<String>,
 }
 
+impl HtmlDocs {
+}
+
 #[derive(Debug, Serialize, Deserialize)]
-pub struct processed_doc {
+pub struct ProcessedDoc {
     pub processed_doc_webpage_id: Uuid,
     pub processed_doc_title: Option<String>,
     pub processed_doc_body: Option<String>,

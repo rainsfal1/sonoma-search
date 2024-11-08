@@ -1,6 +1,6 @@
-use elasticsearch::{Elasticsearch, http::transport::Transport, IndexParts};
+use elasticsearch::{Elasticsearch, http::transport::Transport, IndexParts, indices::IndicesCreateParts, Error as EsError};
 use anyhow::{anyhow, Result};
-use crate::document_models::processed_doc;
+use crate::document_models::ProcessedDoc;
 use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -12,9 +12,61 @@ pub async fn get_elasticsearch_client() -> Result<Elasticsearch> {
     Ok(client)
 }
 
+pub async fn ensure_index_exists(client: &Elasticsearch) -> Result<(), EsError> {
+    let index_name = "processed_docs";
+
+    // Check if the index exists
+    let exists = client
+        .indices()
+        .exists(elasticsearch::indices::IndicesExistsParts::Index(&[index_name]))
+        .send()
+        .await?
+        .status_code()
+        .is_success();
+
+    if exists {
+        println!("Index '{}' already exists", index_name);
+    } else {
+        // Define the index settings and mappings
+        let body = json!({
+            "settings": {
+                "number_of_shards": 1,
+                "number_of_replicas": 1
+            },
+            "mappings": {
+                "properties": {
+                    "webpage_id": { "type": "keyword" },
+                    "title": { "type": "text" },
+                    "body": { "type": "text" },
+                    "indexed_at": { "type": "date" },
+                    "metadata": { "type": "object" },
+                    "content_summary": { "type": "text" },
+                    "keywords": { "type": "keyword" }
+                }
+            }
+        });
+
+        // Create the index
+        let response = client
+            .indices()
+            .create(IndicesCreateParts::Index(index_name))
+            .body(body)
+            .send()
+            .await?;
+
+        if response.status_code().is_success() {
+            println!("Index '{}' created successfully", index_name);
+        } else {
+            eprintln!("Failed to create index '{}'", index_name);
+        }
+    }
+
+    Ok(())
+}
+
 const MAX_RETRIES: u32 = 3;
 
-pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_doc: &processed_doc) -> Result<()> {
+pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_doc: &ProcessedDoc) -> Result<()> {
     let body = json!({
         "webpage_id": processed_doc.processed_doc_webpage_id.to_string(),
         "title": processed_doc.processed_doc_title,

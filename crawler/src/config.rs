@@ -23,8 +23,8 @@ pub struct Config {
     /// The starting URL for the web crawler.
     /// This is the entry point for crawling and is provided either via
     /// the command line or from a configuration file.
-    /// Default value: "https://example.com"
-    #[structopt(short, long, default_value = "https://example.com")]
+    /// Default value: "https://www.w3schools.com"
+    #[structopt(short, long, default_value = "https://www.w3schools.com")]
     pub start_url: String,
 
     /// The maximum depth of the crawl. Depth refers to how far the crawler
