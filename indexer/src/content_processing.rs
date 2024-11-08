@@ -4,16 +4,21 @@ use unicode_segmentation::UnicodeSegmentation;
 use rust_stemmers::{Algorithm, Stemmer};
 use stopwords::{Stopwords, Language as StopwordsLanguage, Spark};
 use regex::Regex;
-use crate::document_models::{html_Docs, processed_doc};
+use crate::document_models::{HtmlDocs, ProcessedDoc};
 use chrono::Utc;
 
-pub fn process_content(doc: &html_Docs) -> Result<processed_doc> {
+pub fn process_content(doc: &HtmlDocs) -> Result<ProcessedDoc> {
     let mut parsed_text = String::new();
-    let document = Html::parse_document(&doc.html_content);
-    let p_tag_selector = Selector::parse("p").map_err(|e| anyhow!("Invalid selector: {}", e))?;
+    let document = Html::parse_document(&doc.content_summary.as_deref().unwrap_or(""));
 
-    for i in document.select(&p_tag_selector) {
-        parsed_text.push_str(&i.text().collect::<Vec<_>>().join(" "));
+    let all_tag_selector = Selector::parse("p, h1, h2, h3, h4, h5, h6, span, div, li, ul")
+        .map_err(|e| anyhow!("Invalid selector: {}", e))?;
+
+    for i in document.select(&all_tag_selector) {
+        let text = i.text().collect::<Vec<_>>().join(" ");
+        if !text.trim().is_empty() {
+            parsed_text.push_str(&text);
+        }
     }
 
     let words: Vec<&str> = parsed_text.unicode_words().collect();
@@ -45,7 +50,7 @@ pub fn process_content(doc: &html_Docs) -> Result<processed_doc> {
         .filter(|w| !w.is_empty())
         .collect();
 
-    Ok(processed_doc {
+    Ok(ProcessedDoc {
         processed_doc_webpage_id: doc.id,
         processed_doc_title: doc.title.clone(),
         processed_doc_body: Some(processed_tokens.join(" ")),

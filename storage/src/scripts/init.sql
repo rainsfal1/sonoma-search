@@ -3,7 +3,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create webpages table
 CREATE TABLE IF NOT EXISTS webpages (
-<<<<<<< Updated upstream
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     url TEXT UNIQUE NOT NULL,
     domain TEXT NOT NULL,
@@ -16,20 +15,8 @@ CREATE TABLE IF NOT EXISTS webpages (
     metadata JSONB,
     meta_title TEXT,
     meta_description TEXT,
-    meta_keywords TEXT
-=======
-                                        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                                        url TEXT UNIQUE NOT NULL,
-                                        title TEXT,
-                                        content TEXT,
-                                        html_content TEXT,
-                                        fetch_timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                                        last_updated_timestamp TIMESTAMPTZ,
-                                        status INTEGER,
-                                        content_hash TEXT,
-                                        metadata JSONB,
-                                        processed Bool
->>>>>>> Stashed changes
+    meta_keywords TEXT,
+    processed bool default false
 );
 
 -- Create indexes for webpages
