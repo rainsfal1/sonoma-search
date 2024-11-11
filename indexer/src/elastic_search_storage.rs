@@ -1,18 +1,19 @@
 use elasticsearch::{Elasticsearch, http::transport::Transport, IndexParts, indices::IndicesCreateParts, Error as EsError};
-use anyhow::{anyhow, Result};
 use crate::document_models::ProcessedDoc;
 use serde_json::json;
 use std::time::Duration;
 use tokio::time::sleep;
 use rand::Rng;
+use crate::error::{IndexerError, IndexerResult};
 
-pub async fn get_elasticsearch_client() -> Result<Elasticsearch> {
-    let transport = Transport::single_node("http://localhost:9200")?;
+pub async fn get_elasticsearch_client() -> IndexerResult<Elasticsearch> {
+    let transport = Transport::single_node("http://localhost:9200")
+        .map_err(|e| IndexerError::Elasticsearch(e))?;
     let client = Elasticsearch::new(transport);
     Ok(client)
 }
 
-pub async fn ensure_index_exists(client: &Elasticsearch) -> Result<(), EsError> {
+pub async fn ensure_index_exists(client: &Elasticsearch) -> IndexerResult<()> {
     let index_name = "processed_docs";
 
     // Check if the index exists
@@ -20,9 +21,8 @@ pub async fn ensure_index_exists(client: &Elasticsearch) -> Result<(), EsError> 
         .indices()
         .exists(elasticsearch::indices::IndicesExistsParts::Index(&[index_name]))
         .send()
-        .await?
-        .status_code()
-        .is_success();
+        .await
+        .map_err(|e| IndexerError::Elasticsearch(e))?;
 
     if exists {
         println!("Index '{}' already exists", index_name);
@@ -66,7 +66,7 @@ pub async fn ensure_index_exists(client: &Elasticsearch) -> Result<(), EsError> 
 
 const MAX_RETRIES: u32 = 3;
 
-pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_doc: &ProcessedDoc) -> Result<()> {
+pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_doc: &ProcessedDoc) -> IndexerResult<()> {
     let body = json!({
         "webpage_id": processed_doc.processed_doc_webpage_id.to_string(),
         "title": processed_doc.processed_doc_title,
@@ -97,7 +97,9 @@ pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_do
         }
 
         if attempt == MAX_RETRIES {
-            return Err(anyhow!("Failed to store document in Elasticsearch after {} attempts", MAX_RETRIES));
+            return Err(IndexerError::Elasticsearch(
+                format!("Failed to store document after {} attempts", MAX_RETRIES).into()
+            ));
         }
 
         // Exponential backoff with some random jitter
@@ -105,5 +107,7 @@ pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_do
         sleep(backoff).await;
     }
 
-    Err(anyhow!("Max retries reached for storing document in Elasticsearch"))
+    Err(IndexerError::Elasticsearch(
+        format!("Max retries reached for storing document in Elasticsearch").into()
+    ))
 }
