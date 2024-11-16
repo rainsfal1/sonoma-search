@@ -3,7 +3,9 @@ use crate::robots::RobotsChecker;
 use crate::config::Config;
 use crate::parser;
 use crate::summarizer;
-use log::{error, warn, info, debug};
+use log::{warn, info, debug};
+use crate::metrics::MetricsClient;
+use std::time::Instant;
 
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
@@ -21,10 +23,12 @@ pub struct Crawler {
     config: Arc<Config>,
     robots_checker: RobotsChecker,
     storage: Arc<PostgresStorage>,
+    metrics: MetricsClient,
+    crawl_start_time: Option<Instant>,
 }
 
 impl Crawler {
-    pub fn new(client: Client, config: Config, storage: PostgresStorage) -> Self {
+    pub fn new(client: Client, config: Config, storage: PostgresStorage, metrics_url: String) -> Self {
         let robots_checker = RobotsChecker::new(client.clone());
         Crawler {
             client,
@@ -33,16 +37,22 @@ impl Crawler {
             config: Arc::new(config),
             robots_checker,
             storage: Arc::new(storage),
+            metrics: MetricsClient::new(metrics_url),
+            crawl_start_time: None,
         }
     }
 
-    pub async fn crawl(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn crawl(&mut self) -> Result<(), Box<dyn Error>> {
+        self.crawl_start_time = Some(Instant::now());
         info!("Starting crawl process");
         debug!("Initial URL: {}", self.config.start_url);
         let start_url = normalize_url(&self.config.start_url)?;
         self.queue.lock().await.push_back((start_url, 0));
 
         while !self.queue.lock().await.is_empty() {
+            let queue_size = self.queue.lock().await.len();
+            self.metrics.set_gauge("crawl_queue_size", queue_size as f64).await?;
+
             let urls_to_fetch = self.get_urls_to_fetch().await;
 
             let fetched_pages = fetcher::fetch_pages_in_parallel(
@@ -59,17 +69,27 @@ impl Crawler {
                 match result {
                     Ok((content, status)) => {
                         println!("Crawled: {} (Status: {})", url, status);
+                        self.metrics.increment("pages_crawled").await?;
                         if let Err(e) = self.process_page(&url, &content, status.as_u16() as i32, depth).await {
                             warn!("Error processing URL {}: {}", url, e);
+                            self.metrics.increment("crawl_errors").await?;
                         }
                     }
-                    Err(e) => error!("Failed to fetch page {}: {:?}", url, e),
+                    Err(e) => {
+                        warn!("Error fetching URL {}: {}", url, e);
+                        self.metrics.increment("crawl_errors").await?;
+                    }
                 }
             }
 
             if self.visited.lock().await.len() >= self.config.max_pages {
                 break;
             }
+        }
+
+        if let Some(start_time) = self.crawl_start_time.take() {
+            let duration = start_time.elapsed().as_secs_f64();
+            self.metrics.observe_histogram("crawl_duration_seconds", duration).await?;
         }
 
         Ok(())
