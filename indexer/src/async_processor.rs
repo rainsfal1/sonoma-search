@@ -8,10 +8,13 @@ use crate::elastic_search_storage::store_processed_document_in_es;
 use crate::content_processing::process_content;
 use log::{info, error};
 use uuid::Uuid;
+use crate::error::{IndexerError, IndexerResult};
 
-pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -> Result<()> {
+pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -> IndexerResult<()> {
     let semaphore = Arc::new(Semaphore::new(10));
-    let documents = fetch_unprocessed_docs(&pool, 10).await?;
+    let documents = fetch_unprocessed_docs(&pool, 10)
+        .await
+        .map_err(|e| IndexerError::Database(e))?;
 
     if documents.is_empty() {
         info!("No documents available");
@@ -60,7 +63,8 @@ pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -
 
     for handle in handles {
         if let Err(e) = handle.await {
-            error!("Error: {:?}", e);
+            error!("Task join error: {}", e);
+            return Err(IndexerError::TaskJoin(e));
         }
     }
 
