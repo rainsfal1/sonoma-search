@@ -1,0 +1,81 @@
+PgPoolOptions
+Purpose: PgPoolOptions is a struct provided by the sqlx crate that is used to configure and create a connection pool for a PostgreSQL database.
+
+
+    let outcomes = sqlx::query_as::<_, Outcome>(
+        "SELECT id, url, page_rank
+         FROM webpages
+         WHERE id = ANY($1) AND processed = true"
+    )
+    .bind(&doc_ids) // Bind the array of UUIDs
+    .fetch_all(pool)
+    .await?;
+
+Executes an SQL query to fetch the document IDs, URLs, and PageRank scores from the webpages table where the id matches any of the UUIDs in doc_ids and the processed column is true.
+query_as::<_, Outcome>: This prepares the query and maps the results to a custom struct (Outcome).
+bind(&doc_ids): Binds the doc_ids array as a parameter in the SQL query.
+fetch_all(pool): Executes the query asynchronously and returns all matching rows as Outcome structs.
+await?: Awaits the asynchronous query execution.
+
+The #[derive(sqlx::FromRow)] macro automatically generates code to map rows from the database query to this struct.
+
+The #[tokio::main] macro indicates that the function is asynchronous and uses the Tokio runtime for asynchronous tasks.
+Return Type: The return type Result<(), Box<dyn std::error::Error>> allows the function to return either a success with no meaningful value or an error of any type that implements the Error trait.
+
+FromSql: Trait to deserialize database values into custom Rust types.
+
+#[derive(Debug)]
+struct PgUuid(Uuid);
+PostgreSQL stores UUIDs as binary data, and this wrapper deserializes them properly for Rust.
+
+Implementing FromSql
+impl<'a> FromSql<'a> for PgUuid {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+
+Purpose: Converts PostgreSQL UUID fields into Rust Uuid values.
+Arguments:
+ty: PostgreSQL type of the field being deserialized.
+raw: Raw bytes of the UUID value.
+Returns:
+A PgUuid containing the parsed Uuid.
+
+
+1. .iter()
+        What it does: Creates an iterator over the key-value pairs of the HashMap.
+        Type: Produces an iterator of type (&Uuid, &Vec<Uuid>) for a HashMap<Uuid, Vec<Uuid>>.
+        Why we use it: To traverse all the key-value pairs in the HashMap.
+2. .filter(|(_, targets)| targets.is_empty())
+        What it does: Filters the iterator, retaining only the entries where the targets (outgoing links) are empty.
+        Logic:
+            (_, targets): Destructures the key-value pair.
+            targets.is_empty(): Checks if the Vec<Uuid> (outgoing links) is empty.
+        Why we use it: To identify dangling nodes (pages without outgoing links).
+3. .map(|(page, _)| *page)
+        What it does: Transforms the filtered iterator, extracting only the keys (page) of the dangling nodes.
+        Logic:
+            |(page, _)|: Destructures the key-value pair, ignoring targets.
+            *page: Dereferences the borrowed Uuid key to produce an owned Uuid.
+        Why we use it: To collect the IDs of pages that meet the condition.
+4. .collect()
+        What it does: Collects the transformed iterator into a collection.
+        Type: Since the transformed iterator produces Uuid values, the resulting collection is Vec<Uuid>.
+        Why we use it: To create a concrete list (Vec) of pages without outgoing links.
+
+
+sqlx::query_as::<_, Data>
+The dash (_) in query_as::<_, Data> is a placeholder for the input type of the query's parameters.
+
+Syntax Details
+        query_as::<_, Data>:
+            query_as is a SQLx method used to execute a query and deserialize the results directly into a Rust struct or type.
+        ::<_, Data> specifies the type parameters:
+            The first type (_) represents the input type of the parameters (e.g., String, i32).
+            The second type (Data) is the target struct or type to deserialize the query results into.
+        Why _:
+            Using _ tells the compiler to infer the input parameter type from the provided .bind() calls or SQL query. It’s common when the input type doesn’t need explicit specification.
+
+
+Dangling nodes are nodes (webpages) in the graph representation of the web that have no outgoing links. In other words, these pages don't link to any other pages.
+Teleportation, also known as the random jump mechanism, is a solution to the problem of dangling nodes and is also used to ensure that the algorithm converges. It introduces the idea that:
+
+At each step of the PageRank computation, there is a fixed probability 1−α, where α is the damping factor) that a user will randomly "teleport" to any node in the graph instead of following an outgoing link.
