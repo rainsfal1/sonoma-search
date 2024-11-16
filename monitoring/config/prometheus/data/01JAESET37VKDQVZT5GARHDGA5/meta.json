@@ -1,0 +1,17 @@
+{
+	"ulid": "01JAESET37VKDQVZT5GARHDGA5",
+	"minTime": 1729209829762,
+	"maxTime": 1729216800000,
+	"stats": {
+		"numSamples": 85,
+		"numSeries": 5,
+		"numChunks": 5
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01JAESET37VKDQVZT5GARHDGA5"
+		]
+	},
+	"version": 1
+}

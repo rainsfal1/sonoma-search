@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 use sqlx::types::Uuid as SqlxUuid;
-use anyhow::{Result, anyhow};
+use crate::error::{IndexerError, IndexerResult};
 use crate::document_models::HtmlDocs;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -17,7 +17,7 @@ struct DbHtmlDoc {
 }
 
 const MAX_RETRIES: u32 = 3;
-pub async fn fetch_unprocessed_docs(pool: &PgPool, limit: i64) -> Result<Vec<HtmlDocs>> {
+pub async fn fetch_unprocessed_docs(pool: &PgPool, limit: i64) -> IndexerResult<Vec<HtmlDocs>> {
     let mut attempt = 0;
     while attempt < MAX_RETRIES {
         attempt += 1;
@@ -53,17 +53,19 @@ pub async fn fetch_unprocessed_docs(pool: &PgPool, limit: i64) -> Result<Vec<Htm
         }
 
         if attempt == MAX_RETRIES {
-            return Err(anyhow!("Failed to fetch documents after {} attempts", MAX_RETRIES));
+            return Err(IndexerError::Retry(
+                format!("Failed to fetch documents after {} attempts", MAX_RETRIES)
+            ));
         }
 
         let backoff = Duration::from_millis(2u64.pow(attempt) * 100 + rand::thread_rng().gen_range(0..100));
         sleep(backoff).await;
     }
 
-    Err(anyhow!("Max retries reached"))
+    Err(IndexerError::Retry("Max retries reached".to_string()))
 }
 
-pub async fn mark_as_processed(pool: &PgPool, doc_id: Uuid) -> Result<()> {
+pub async fn mark_as_processed(pool: &PgPool, doc_id: Uuid) -> IndexerResult<()> {
     let sqlx_uuid = SqlxUuid::from_bytes(doc_id.into_bytes());
     let mut attempt = 0;
     while attempt < MAX_RETRIES {
@@ -87,12 +89,14 @@ pub async fn mark_as_processed(pool: &PgPool, doc_id: Uuid) -> Result<()> {
         }
 
         if attempt == MAX_RETRIES {
-            return Err(anyhow!("Failed to mark document as processed after {} attempts", MAX_RETRIES));
+            return Err(IndexerError::Retry(
+                format!("Failed to mark document as processed after {} attempts", MAX_RETRIES)
+            ));
         }
 
         let backoff = Duration::from_millis(2u64.pow(attempt) * 100 + rand::thread_rng().gen_range(0..100));
         sleep(backoff).await;
     }
 
-    Err(anyhow!("Max retries reached"))
+    Err(IndexerError::Retry("Max retries reached".to_string()))
 }
