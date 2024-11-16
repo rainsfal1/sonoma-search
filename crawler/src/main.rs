@@ -4,6 +4,7 @@ mod fetcher;
 mod parser;
 mod robots;
 mod summarizer;
+mod bloom;
 
 use std::error::Error;
 use tokio::main;
