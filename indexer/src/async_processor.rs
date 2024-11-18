@@ -12,8 +12,7 @@ use crate::error::{IndexerError, IndexerResult};
 pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -> IndexerResult<()> {
     let semaphore = Arc::new(Semaphore::new(10));
     let documents = fetch_unprocessed_docs(&pool, 10)
-        .await
-        .map_err(|e| IndexerError::Database(e))?;
+        .await?;
 
     if documents.is_empty() {
         info!("No documents available");

@@ -6,10 +6,6 @@ use tokio::time::sleep;
 use rand::Rng;
 use crate::error::{IndexerError, IndexerResult};
 
-pub async fn get_elasticsearch_client() -> IndexerResult<Elasticsearch> {
-    let transport = Transport::single_node("http://localhost:9200")
-        .map_err(|e| IndexerError::Elasticsearch(e))?;
-
 
     pub async fn get_elasticsearch_client() -> IndexerResult<Elasticsearch> {
         let transport = Transport::single_node("http://localhost:9200")
@@ -112,4 +108,3 @@ pub async fn get_elasticsearch_client() -> IndexerResult<Elasticsearch> {
 
         Err(IndexerError::GenericError("Max retries reached for storing document in Elasticsearch".to_string())) // Use GenericError
     }
-}
