@@ -5,15 +5,6 @@ use stopwords::{Stopwords, Language as StopwordsLanguage, Spark};
 use crate::document_models::{HtmlDocs, ProcessedDoc};
 use chrono::Utc;
 use crate::error::{IndexerError, IndexerResult};
-<<<<<<< Updated upstream
-
-pub fn process_content(doc: &HtmlDocs) -> IndexerResult<ProcessedDoc> {
-    let mut parsed_text = String::new();
-    let document = Html::parse_document(&doc.content_summary.as_deref().unwrap_or(""));
-
-    let all_tag_selector = Selector::parse("p, h1, h2, h3, h4, h5, h6, span, div, li, ul")
-        .map_err(|e| IndexerError::ContentProcessing(format!("Invalid selector: {}", e)))?;
-=======
 use reqwest::Client; // Use the async client
 use serde::{Deserialize, Serialize};
 use tokio::task; // Import tokio::task to spawn blocking tasks
@@ -24,7 +15,6 @@ use tokio::task; // Import tokio::task to spawn blocking tasks
 struct LemmatizeRequest {
     tokens: Vec<String>,
 }
->>>>>>> Stashed changes
 
 // Define structure for API response
 #[derive(Deserialize)]
@@ -89,17 +79,9 @@ pub async fn process_content(doc: &HtmlDocs) -> IndexerResult<ProcessedDoc> {
         .map(|w| stemmer.stem(w).to_string())
         .collect();
 
-<<<<<<< Updated upstream
-    let rex = Regex::new(r"\W+").map_err(|e| IndexerError::ContentProcessing(format!("Invalid regex: {}", e)))?;
-    let processed_tokens: Vec<String> = stem_words
-        .iter()
-        .map(|w| rex.replace_all(w, "").to_string())
-        .filter(|w| !w.is_empty())
-        .collect();
-=======
     // Await the async lemmatize_tokens call here
     let lemmatized_tokens = lemmatize_tokens(stemmed_tokens).await?;
->>>>>>> Stashed changes
+
 
     Ok(ProcessedDoc {
         processed_doc_webpage_id: doc.id,

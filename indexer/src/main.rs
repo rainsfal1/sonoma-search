@@ -12,13 +12,8 @@ use dotenv::dotenv;
 use log::{error};
 use elastic_search_storage::{get_elasticsearch_client, ensure_index_exists};
 use async_processor::concurrent_process_docs;
-<<<<<<< Updated upstream
-use elasticsearch::Elasticsearch;
-use crate::searcher::print_search_results;
-=======
 use crate::error::{IndexerError, IndexerResult}; // Add the custom error type
 use sqlx::postgres::PgPoolOptions;
->>>>>>> Stashed changes
 
 #[tokio::main]
 async fn main() -> IndexerResult<()> {
@@ -68,19 +63,6 @@ async fn main() -> IndexerResult<()> {
         e
     })?;
 
-
-<<<<<<< Updated upstream
-    // // Example of calling the search function (you can remove this if you want)
-    if let Err(e) = print_search_results(&es_client, "w3schools").await {
-        error!("Search error: {}", e);
-    }
-    // let client = Elasticsearch::default();
-    // let keyword = "w3schools";
-    //
-    // print_search_results(&client, keyword).await?;
-    //
-=======
->>>>>>> Stashed changes
     loop {
         let client_clone = Arc::clone(&es_client); // Cloning the Arc, not the client itself
         if let Err(e) = concurrent_process_docs(pool.clone(), client_clone).await {
@@ -92,8 +74,4 @@ async fn main() -> IndexerResult<()> {
     }
 }
 
-<<<<<<< Updated upstream
-// export DATABASE_URL="postgres://postgres:ptcl12345@localhost/postgres"
-=======
 // export DATABASE_URL="postgres://postgres:ptcl12345@localhost:5432/postgres?connect_timeout=5"
->>>>>>> Stashed changes

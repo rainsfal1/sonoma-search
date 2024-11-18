@@ -5,6 +5,10 @@ mod parser;
 mod robots;
 mod summarizer;
 mod bloom;
+<<<<<<< Updated upstream
+=======
+mod metrics;
+>>>>>>> Stashed changes
 
 use std::error::Error;
 use tokio::main;
