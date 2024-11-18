@@ -69,12 +69,18 @@ const MAX_RETRIES: u32 = 3;
 pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_doc: &ProcessedDoc) -> IndexerResult<()> {
     let body = json!({
         "webpage_id": processed_doc.processed_doc_webpage_id.to_string(),
-        "title": processed_doc.processed_doc_title,
+        "title": {
+            "content": processed_doc.processed_doc_title,
+            "boost": 2.0  // Boost title relevance
+        },
         "body": processed_doc.processed_doc_body,
-        "indexed_at": processed_doc.processed_doc_indexed_at,
         "metadata": processed_doc.processed_doc_metadata,
-        "content_summary": processed_doc.processed_doc_content_summary,
+        "content_summary": {
+            "content": processed_doc.processed_doc_content_summary,
+            "boost": 1.5  // Boost summary relevance
+        },
         "keywords": processed_doc.processed_doc_keywords,
+        "indexed_at": processed_doc.processed_doc_indexed_at,
     });
 
     let mut attempt = 0;

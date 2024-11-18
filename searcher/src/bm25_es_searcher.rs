@@ -4,7 +4,11 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 pub fn initialize_client(url: &str) -> Result<Elasticsearch, Box<dyn std::error::Error>> {
-    let transport = Transport::single_node(url)?;
+    dotenv::dotenv().ok();
+    let es_url = std::env::var("ELASTICSEARCH_URL")
+        .unwrap_or_else(|_| "http://localhost:9200".to_string());
+    
+    let transport = Transport::single_node(&es_url)?;
     Ok(Elasticsearch::new(transport))
 }
 

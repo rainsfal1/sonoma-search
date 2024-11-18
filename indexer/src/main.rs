@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
     }
     
     let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| String::from("postgres://postgres:ptcl12345@localhost:5432/postgres"));
+        .unwrap_or_else(|_| String::from("postgres://rainsfall:262912@localhost:5432/search_engine"));
         
     println!("Attempting to connect to database...");
     println!("Using connection string structure: postgres://user:pass@host:port/dbname");

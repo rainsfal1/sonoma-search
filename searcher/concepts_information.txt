@@ -44,7 +44,7 @@ Definition: The size parameter specifies the maximum number of records to return
 
 Executes a loop that sends a search request to Elasticsearch.
 The search is a multi_match query, which searches across the title, content_summary, and body fields. The ^2 boosts the title field to give it more weight in the search.
-Pagination is handled by the from and size parameters.
+Pagination is handled by the form and size parameters.
 
 
 hits and hits Array Logic

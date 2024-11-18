@@ -6,8 +6,12 @@ use uuid::Uuid;
 pub struct HtmlDocs {
     pub id: Uuid,
     pub url: String,
+    pub domain: String,
     pub content_summary: Option<String>,
     pub title: Option<String>,
+    pub meta_title: Option<String>,
+    pub meta_description: Option<String>,
+    pub meta_keywords: Option<String>,
 }
 
 impl HtmlDocs {

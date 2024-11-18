@@ -1,4 +1,3 @@
-use sqlx::FromRow;
 use uuid::Uuid;
 
 #[derive(sqlx::FromRow)]

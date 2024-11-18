@@ -12,7 +12,9 @@ pub struct Outcome {
 }
 
 pub async fn connect_to_db() -> Result<PgPool, AppError> {
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    dotenv::dotenv().ok();
+    let database_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set in .env");
 
     let pool = PgPoolOptions::new()
         .max_connections(3)
