@@ -4,7 +4,7 @@ mod fetcher;
 mod parser;
 mod robots;
 mod summarizer;
-mod metrics;
+mod bloom;
 
 use std::error::Error;
 use tokio::main;
@@ -43,14 +43,13 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // Fetch storage URL from environment
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    // Fetch metrics URL from environment
-    let metrics_url = std::env::var("METRICS_URL").expect("METRICS_URL must be set");
-
-    // Initialize the storage
+    // Initialize the PostgresStorage instance asynchronously
     let storage = PostgresStorage::new(&database_url).await?;
 
-    // Create and run the crawler
-    let mut crawler = Crawler::new(client, config, storage, metrics_url);
+    // Pass the client, config, and storage to the Crawler
+    let crawler = Crawler::new(client, config, storage);
+
+    // Start the crawl process
     crawler.crawl().await?;
 
     Ok(())

@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS webpages (
     meta_title TEXT,
     meta_description TEXT,
     meta_keywords TEXT,
-    processed bool default false
+    processed bool default false,
+    page_rank double precision default 0.0
 );
 
 -- Create indexes for webpages
