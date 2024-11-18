@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use anyhow::Result;
 use tokio::sync::Semaphore;
 use sqlx::PgPool;
 use elasticsearch::Elasticsearch;
@@ -32,6 +31,9 @@ pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -
 
         let doc_uuid = Uuid::from_bytes(*doc.id.as_bytes());
 
+        // Wrap doc in Arc for safe sharing between threads
+        let doc_arc = Arc::new(doc);  // If doc is Send and Clone, this works.
+
         let handle = tokio::spawn(async move {
             let _permit = match sem.acquire().await {
                 Ok(permit) => permit,
@@ -41,7 +43,8 @@ pub async fn concurrent_process_docs(pool: PgPool, client: Arc<Elasticsearch>) -
                 }
             };
 
-            match process_content(&doc) {
+            let doc_clone = doc_arc.clone(); // Clone the doc if necessary
+            match process_content(&doc_clone).await {
                 Ok(processed_doc) => {
                     if let Err(e) = store_processed_document_in_es(&client, &processed_doc).await {
                         error!("Error storing processed_doc {}: {}", doc_uuid, e);

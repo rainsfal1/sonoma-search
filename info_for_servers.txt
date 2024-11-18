@@ -25,11 +25,30 @@ sudo systemctl status elasticsearch
 sudo systemctl status postgresql
 
 
+<<<<<<< Updated upstream
 set postgres dataase command:
 
 export DATABASE_URL="postgres://postgres:ptcl12345@localhost/postgres"
+=======
+set postgres DATABASE command:
+
+export DATABASE_URL="postgres://postgres:ptcl12345@localhost/postgres"      // for crawler, ranker, searcher
+export DATABASE_URL="postgres://postgres:ptcl12345@localhost:5432/postgres?connect_timeout=5"       // for indexer
+
+connect_timeout=5: This means that if the client cannot establish a connection within 5 seconds, it will stop trying and report a timeout error.
+it is not strictly necessary to implement the connect_timeout in your PostgreSQL connection string.
+>>>>>>> Stashed changes
 
 command to check no of documents indexed in elastic search:
 
 curl -X GET "http://localhost:9200/processed_docs/_count"
 curl -X GET "http://localhost:9200/_cat/indices?v"
+<<<<<<< Updated upstream
+=======
+curl -X DELETE "http://localhost:9200/your_index_name"          // delete index
+
+
+
+lemmatizer API
+uvicorn src.lemmatization:app --host 0.0.0.0 --port 8000
+>>>>>>> Stashed changes
