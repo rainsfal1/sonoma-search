@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 use elasticsearch::{Elasticsearch, http::transport::Transport, IndexParts, indices::IndicesCreateParts, Error as EsError};
+=======
+use elasticsearch::{Elasticsearch, http::transport::Transport, IndexParts, indices::IndicesCreateParts};
+>>>>>>> Stashed changes
 use crate::document_models::ProcessedDoc;
 use serde_json::json;
 use std::time::Duration;
@@ -9,6 +13,11 @@ use crate::error::{IndexerError, IndexerResult};
 pub async fn get_elasticsearch_client() -> IndexerResult<Elasticsearch> {
     let transport = Transport::single_node("http://localhost:9200")
         .map_err(|e| IndexerError::Elasticsearch(e))?;
+    
+
+pub async fn get_elasticsearch_client() -> IndexerResult<Elasticsearch> {
+    let transport = Transport::single_node("http://localhost:9200")
+        .map_err(|e| IndexerError::Elasticsearch(e.into()))?;
     let client = Elasticsearch::new(transport);
     Ok(client)
 }
@@ -17,14 +26,15 @@ pub async fn ensure_index_exists(client: &Elasticsearch) -> IndexerResult<()> {
     let index_name = "processed_docs";
 
     // Check if the index exists
-    let exists = client
+    let response = client
         .indices()
         .exists(elasticsearch::indices::IndicesExistsParts::Index(&[index_name]))
         .send()
         .await
         .map_err(|e| IndexerError::Elasticsearch(e))?;
 
-    if exists {
+    // Check the response status code to determine if the index exists
+    if response.status_code().is_success() {
         println!("Index '{}' already exists", index_name);
     } else {
         // Define the index settings and mappings
@@ -37,27 +47,27 @@ pub async fn ensure_index_exists(client: &Elasticsearch) -> IndexerResult<()> {
                 "properties": {
                     "webpage_id": { "type": "keyword" },
                     "title": { "type": "text" },
-                    "body": { "type": "text" },
                     "indexed_at": { "type": "date" },
                     "metadata": { "type": "object" },
-                    "content_summary": { "type": "text" },
-                    "keywords": { "type": "keyword" }
+                    "content_summary": { "type": "text" }
                 }
             }
         });
 
         // Create the index
-        let response = client
+        let create_response = client
             .indices()
             .create(IndicesCreateParts::Index(index_name))
             .body(body)
             .send()
             .await?;
 
-        if response.status_code().is_success() {
+        if create_response.status_code().is_success() {
             println!("Index '{}' created successfully", index_name);
         } else {
-            eprintln!("Failed to create index '{}'", index_name);
+            return Err(IndexerError::IndexCreationFailed(format!(
+                "Failed to create index '{}'", index_name
+            )));
         }
     }
 
@@ -66,15 +76,14 @@ pub async fn ensure_index_exists(client: &Elasticsearch) -> IndexerResult<()> {
 
 const MAX_RETRIES: u32 = 3;
 
+// Inside your store_processed_document_in_es function
 pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_doc: &ProcessedDoc) -> IndexerResult<()> {
     let body = json!({
         "webpage_id": processed_doc.processed_doc_webpage_id.to_string(),
         "title": processed_doc.processed_doc_title,
-        "body": processed_doc.processed_doc_body,
         "indexed_at": processed_doc.processed_doc_indexed_at,
         "metadata": processed_doc.processed_doc_metadata,
         "content_summary": processed_doc.processed_doc_content_summary,
-        "keywords": processed_doc.processed_doc_keywords,
     });
 
     let mut attempt = 0;
@@ -97,9 +106,13 @@ pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_do
         }
 
         if attempt == MAX_RETRIES {
+<<<<<<< Updated upstream
             return Err(IndexerError::Elasticsearch(
                 format!("Failed to store document after {} attempts", MAX_RETRIES).into()
             ));
+=======
+            return Err(IndexerError::GenericError(format!("Failed to store document after {} attempts", MAX_RETRIES))); // Use GenericError
+>>>>>>> Stashed changes
         }
 
         // Exponential backoff with some random jitter
@@ -107,7 +120,11 @@ pub async fn store_processed_document_in_es(client: &Elasticsearch, processed_do
         sleep(backoff).await;
     }
 
+<<<<<<< Updated upstream
     Err(IndexerError::Elasticsearch(
         format!("Max retries reached for storing document in Elasticsearch").into()
     ))
+=======
+    Err(IndexerError::GenericError("Max retries reached for storing document in Elasticsearch".to_string())) // Use GenericError
+>>>>>>> Stashed changes
 }
