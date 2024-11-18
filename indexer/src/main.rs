@@ -4,7 +4,6 @@ mod content_processing;
 mod document_models;
 mod async_processor;
 mod searcher;
-mod error;
 
 use std::env;
 use std::sync::Arc;
@@ -18,11 +17,11 @@ use elastic_search_storage::{get_elasticsearch_client, ensure_index_exists}; // 
 // use content_processing::process_content;
 // use document_models::{html_Docs, processed_doc};
 use async_processor::concurrent_process_docs;
-use searcher::search_documents;
-use crate::error::{IndexerError, IndexerResult};
+use elasticsearch::Elasticsearch;
+use crate::searcher::print_search_results;
 
 #[tokio::main]
-async fn main() -> IndexerResult<()> {
+async fn main() -> Result<()> {
     dotenv().ok();
     env_logger::init();
     
@@ -50,7 +49,8 @@ async fn main() -> IndexerResult<()> {
         .await
         .map_err(|e| {
             eprintln!("Database connection error: {}", e);
-            IndexerError::Database(e)
+            eprintln!("Please ensure PostgreSQL is running and the connection details are correct");
+            e
         })?;
 
     // Test the connection with a simple query
@@ -73,36 +73,23 @@ async fn main() -> IndexerResult<()> {
     //     e
     // })?;
 
-    // Example of calling the search function (you can remove this if you want)
-    if let Err(e) = search_documents(&es_client, "w3schools").await {
+    // // Example of calling the search function (you can remove this if you want)
+    if let Err(e) = print_search_results(&es_client, "w3schools").await {
         error!("Search error: {}", e);
     }
-    
-    // Add graceful shutdown handling
-    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
-    
-    // Handle Ctrl+C
-    let shutdown_tx_clone = shutdown_tx.clone();
-    tokio::spawn(async move {
-        if let Ok(_) = tokio::signal::ctrl_c().await {
-            let _ = shutdown_tx_clone.send(());
-        }
-    });
-
+    // let client = Elasticsearch::default();
+    // let keyword = "w3schools";
+    //
+    // print_search_results(&client, keyword).await?;
+    //
     loop {
-        let client_clone = Arc::clone(&es_client);
-        tokio::select! {
-            _ = tokio::time::sleep(Duration::from_secs(5)) => {
-                if let Err(e) = concurrent_process_docs(pool.clone(), client_clone).await {
-                    error!("Error processing docs: {}", e);
-                }
-            }
-            _ = shutdown_rx => {
-                println!("Shutting down gracefully...");
-                break;
-            }
+        let client_clone = Arc::clone(&es_client); // Cloning the Arc, not the client itself
+        if let Err(e) = concurrent_process_docs(pool.clone(), client_clone).await {
+            error!("Error processing docs: {}", e);
         }
-    }
 
-    Ok(())
+        tokio::time::sleep(Duration::from_secs(5)).await;
+    }
 }
+
+// export DATABASE_URL="postgres://postgres:ptcl12345@localhost/postgres"

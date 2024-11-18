@@ -1,0 +1,35 @@
+start services commands:
+
+sudo systemctl start prometheus
+sudo systemctl start grafana-server
+sudo systemctl start rabbitmq-server
+sudo systemctl start elasticsearch
+sudo systemctl start postgresql
+
+
+stop services commands:
+
+sudo systemctl stop prometheus
+sudo systemctl stop grafana-server
+sudo systemctl stop rabbitmq-server
+sudo systemctl stop elasticsearch
+sudo systemctl stop postgresql
+
+
+status checking commands:
+
+sudo systemctl status prometheus
+sudo systemctl status grafana-server
+sudo systemctl status rabbitmq-server
+sudo systemctl status elasticsearch
+sudo systemctl status postgresql
+
+
+set postgres dataase command:
+
+export DATABASE_URL="postgres://postgres:ptcl12345@localhost/postgres"
+
+command to check no of documents indexed in elastic search:
+
+curl -X GET "http://localhost:9200/processed_docs/_count"
+curl -X GET "http://localhost:9200/_cat/indices?v"
