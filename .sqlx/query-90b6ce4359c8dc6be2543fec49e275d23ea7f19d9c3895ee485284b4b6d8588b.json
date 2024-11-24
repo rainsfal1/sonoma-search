@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE webpages\n            SET page_rank = $1, ranked = TRUE, last_ranked_at = NOW()\n            WHERE id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "90b6ce4359c8dc6be2543fec49e275d23ea7f19d9c3895ee485284b4b6d8588b"
+}

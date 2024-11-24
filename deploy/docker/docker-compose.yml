@@ -1,0 +1,112 @@
+services:
+  crawler:
+    build:
+      context: ../../
+      dockerfile: services/crawler/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:262912@postgres:5432/search_engine
+      - RUST_LOG=error,crawler=warn
+    ports:
+      - "9092:9092"  # Metrics port
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: unless-stopped
+
+  ranker:
+    build:
+      context: ../../
+      dockerfile: services/ranker/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:262912@postgres:5432/search_engine
+      - RUST_LOG=error,ranker=warn
+    ports:
+      - "9093:9093"  # Metrics port
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: unless-stopped
+
+  indexer:
+    build:
+      context: ../../
+      dockerfile: services/indexer/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:262912@postgres:5432/search_engine
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - RUST_LOG=error,indexer=warn
+    ports:
+      - "9091:9091"  # Metrics port
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../../
+      dockerfile: services/web/Dockerfile
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    ports:
+      - "3000:3000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=262912
+      - POSTGRES_DB=search_engine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../services/storage/src/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - crawler_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - logger.level=WARN
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - crawler_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+networks:
+  crawler_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  elasticsearch_data:

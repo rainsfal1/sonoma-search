@@ -1,12 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-    "crawler",
-    "storage",
-    "indexer",
-    "ranker",
-    "searcher",
-    "monitoring"
+    "services/crawler",
+    "services/storage",
+    "services/indexer",
+    "services/ranker",
+    "services/searcher"
 ]
 
 # A Rust workspace is a collection of multiple Rust projects

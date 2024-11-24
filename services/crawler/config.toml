@@ -1,0 +1,7 @@
+# Crawler Configuration
+start_url = "https://developer.mozilla.org/en-US/docs/Web"
+max_depth = 4
+max_pages = 500
+concurrent_requests = 12
+delay_ms = 400
+user_agent = "MyCrawler/1.0 (Educational Project)"

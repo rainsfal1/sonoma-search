@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, url, domain, title, content_summary, \n                meta_title, meta_description, meta_keywords, \n                metadata, page_rank, \n                COALESCE(ranked, false) as ranked,\n                last_ranked_at\n            FROM webpages\n            WHERE processed = FALSE AND ranked = TRUE\n            ORDER BY page_rank DESC\n            LIMIT $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "domain",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "content_summary",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "meta_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "meta_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "meta_keywords",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "page_rank",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 10,
+        "name": "ranked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "last_ranked_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "ad86c891ce24f3034d72448b430759b269a08e4a4642d749e02d8466785f9390"
+}
