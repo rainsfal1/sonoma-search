@@ -33,3 +33,9 @@ services/.sqlx/db
 # Docker
 deploy/docker/data/
 .docker/
+
+# Web service
+services/web/node_modules/
+services/web/.next/
+services/web/.env
+services/web/.env.local
