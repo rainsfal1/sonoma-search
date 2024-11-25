@@ -26,4 +26,7 @@ pub enum CrawlerError {
 
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
+
+    #[error("Content too large: {0} bytes")]
+    ContentTooLarge(u64),
 }

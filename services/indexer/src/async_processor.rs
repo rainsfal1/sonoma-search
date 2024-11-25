@@ -11,6 +11,15 @@ use crate::error::{IndexerResult};
 use crate::metrics::MetricsClient;
 use std::time::Instant;
 
+fn display_index_summary(pages_indexed: usize, total_pages: usize) {
+    println!("\nIndexer Status Summary:");
+    println!("----------------------");
+    println!("Pages Indexed: {}", pages_indexed);
+    println!("Total Pages: {}", total_pages);
+    println!("Progress: {:.1}%", (pages_indexed as f64 / total_pages as f64) * 100.0);
+    println!("----------------------\n");
+}
+
 const BATCH_SIZE: i64 = 10;
 const MAX_CONCURRENT_REQUESTS: usize = 2;
 const PROCESS_DELAY_MS: u64 = 100;
@@ -97,5 +106,6 @@ pub async fn concurrent_process_docs(
     }
 
     metrics_for_histogram.observe_index_duration(start_time.elapsed().as_secs_f64());
+    display_index_summary(doc_count, metrics_for_histogram.get_queue_size() as usize);
     Ok(doc_count)
 }

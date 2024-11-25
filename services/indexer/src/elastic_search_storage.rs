@@ -56,11 +56,41 @@ pub async fn ensure_index_exists(client: &Elasticsearch) -> IndexerResult<()> {
             "mappings": {
                 "properties": {
                     "webpage_id": { "type": "keyword" },
-                    "title": { "type": "text", "analyzer": "standard" },
-                    "body": { "type": "text", "analyzer": "standard" },
+                    "domain": { "type": "keyword" },
+                    "title": { 
+                        "type": "text",
+                        "analyzer": "standard",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "meta_title": { 
+                        "type": "text",
+                        "analyzer": "standard"
+                    },
+                    "meta_description": { 
+                        "type": "text",
+                        "analyzer": "standard"
+                    },
+                    "body": { 
+                        "type": "text",
+                        "analyzer": "standard"
+                    },
                     "indexed_at": { "type": "date" },
-                    "metadata": { "type": "object" },
-                    "content_summary": { "type": "text", "analyzer": "standard" },
+                    "metadata": { 
+                        "type": "object",
+                        "properties": {
+                            "language": { "type": "keyword" },
+                            "site_name": { "type": "keyword" }
+                        }
+                    },
+                    "content_summary": { 
+                        "type": "text",
+                        "analyzer": "standard"
+                    },
                     "keywords": { "type": "keyword" },
                     "page_rank": { "type": "double" }
                 }

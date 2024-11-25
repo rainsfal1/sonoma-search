@@ -6,16 +6,6 @@ use std::error::Error;
 use std::path::PathBuf;
 use env_logger::{Builder, Env};
 use crate::error::CrawlerError;
-
-mod config;
-mod crawler;
-mod fetcher;
-mod parser;
-mod robots;
-mod summarizer;
-mod metrics;
-mod error;
-
 use crate::config::Config;
 use crate::crawler::Crawler;
 use crate::fetcher::create_http_client;
@@ -28,11 +18,20 @@ async fn metrics() -> HttpResponse {
     encoder.encode(&metric_families, &mut buffer).unwrap();
     
     HttpResponse::Ok()
-        .content_type("text/plain")
+        .content_type("text/plain; version=0.0.4; charset=utf-8")
         .body(String::from_utf8(buffer).unwrap())
 }
 
 async fn run() -> Result<(), Box<dyn Error>> {
+    // Initialize metrics
+    info!("Initializing metrics...");
+    lazy_static::initialize(&metrics::QUEUE_SIZE);
+    lazy_static::initialize(&metrics::PAGES_CRAWLED);
+    lazy_static::initialize(&metrics::CRAWL_ERRORS);
+    lazy_static::initialize(&metrics::CRAWL_CYCLES);
+    lazy_static::initialize(&metrics::CRAWL_DURATION);
+    info!("Metrics initialized");
+
     let current_dir = std::env::current_dir()?;
     let config_path = find_config_file(&current_dir);
     let config = Config::from_file(config_path)?;
@@ -48,6 +47,20 @@ async fn run() -> Result<(), Box<dyn Error>> {
     let mut crawler = Crawler::new(client, config, storage);
     let mut interval = interval(Duration::from_secs(300)); // 5 minute intervals
     
+    // Run first crawl immediately
+    info!("Starting initial crawl cycle");
+    match crawler.crawl().await {
+        Ok(_) => {
+            info!("Initial crawl cycle completed");
+            metrics::increment_crawl_cycles();
+        }
+        Err(e) => {
+            error!("Initial crawl cycle failed: {}", e);
+            metrics::increment_crawl_errors();
+        }
+    }
+    
+    // Then run on interval
     loop {
         interval.tick().await;
         match crawler.crawl().await {
@@ -115,3 +128,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+mod config;
+mod crawler;
+mod fetcher;
+mod parser;
+mod robots;
+mod summarizer;
+mod metrics;
+mod error;

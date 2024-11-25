@@ -4,9 +4,10 @@ use std::io::Read;
 use structopt::StructOpt;
 use std::error::Error;
 use std::path::Path;
+use url::Url;
 
 /// Struct `Config` represents the configuration options for a web crawler.
-/// It holds parameters like the start URL, crawl depth, number of pages to fetch,
+/// It holds parameters like the start URLs, crawl depth, number of pages to fetch,
 /// and other settings related to concurrency and rate limiting.
 ///
 /// The struct uses two main functionalities:
@@ -18,48 +19,51 @@ use std::path::Path;
 /// - A TOML configuration file that can be loaded and parsed into the `Config` struct.
 ///
 /// If no configuration is provided via the command-line, default values are used.
-#[derive(Debug, Deserialize, StructOpt)]
+#[derive(Debug, Clone, Deserialize, StructOpt)]
 pub struct Config {
-    /// The starting URL for the web crawler.
-    /// This is the entry point for crawling and is provided either via
-    /// the command line or from a configuration file.
-    /// Default value: "https://example.com"
-    #[structopt(short, long, default_value = "https://example.com")]
-    pub start_url: String,
+    /// URLs to start crawling from
+    #[structopt(long, use_delimiter = true, default_value = "https://mdn.dev,https://wikipedia.org")]
+    pub seed_urls: Vec<String>,
 
-    /// The maximum depth of the crawl. Depth refers to how far the crawler
-    /// will follow links from the starting page.
-    /// Depth 0 means only the start_url will be fetched.
-    /// Each increment in depth allows the crawler to go one level deeper into linked pages.
-    /// Default value: 3
+    /// User agent string to identify the crawler
+    #[structopt(long, default_value = "MyCrawler/1.0 (+https://github.com/yourusername/search-engine)")]
+    pub user_agent: String,
+
+    /// Maximum depth to crawl
     #[structopt(short, long, default_value = "3")]
     pub max_depth: usize,
 
-    /// The maximum number of pages that the crawler will attempt to crawl.
-    /// Once this limit is reached, the crawler will stop.
-    /// Default value: 1000
+    /// Maximum number of pages to crawl
     #[structopt(short, long, default_value = "1000")]
     pub max_pages: usize,
 
-    /// Specifies the maximum number of concurrent HTTP requests that can be made at once.
-    /// This is useful for limiting resource usage and for politeness in web crawling,
-    /// ensuring that the crawler does not overwhelm servers with too many requests at the same time.
-    /// Default value: 10
-    #[structopt(short, long, default_value = "10")]
+    /// Number of concurrent requests
+    #[structopt(short, long, default_value = "8")]
     pub concurrent_requests: usize,
 
-    /// Specifies the delay in milliseconds between consecutive HTTP requests.
-    /// This is another way to implement crawling politeness by preventing the crawler
-    /// from hammering a server with too many requests in rapid succession.
-    /// Default value: 100 ms
-    #[structopt(short, long, default_value = "100")]
-    pub delay_ms: u64,
+    /// Delay between requests in milliseconds
+    #[structopt(long, default_value = "500")]
+    pub request_delay: u64,
 
-    /// The User-Agent string that will be sent in the HTTP requests made by the crawler.
-    /// This helps servers identify the crawler, and it’s a good practice to provide a clear and honest User-Agent.
-    /// Default value: "MyCrawler/1.0"
-    #[structopt(short, long, default_value = "MyCrawler/1.0")]
-    pub user_agent: String,
+    /// Maximum size of page content to fetch (in bytes)
+    #[structopt(long, default_value = "5242880")]  // 5MB
+    pub max_content_size: usize,
+
+    /// Minimum quality score for a page to be stored
+    #[structopt(long, default_value = "40")]
+    pub min_quality_score: u32,
+
+    /// Priority domains to focus on (comma-separated)
+    #[structopt(long, use_delimiter = true)]
+    pub priority_domains: Option<Vec<String>>,
+
+    /// List of allowed domains (empty means all domains are allowed)
+    #[structopt(long, use_delimiter = true)]
+    pub allowed_domains: Option<Vec<String>>,
+
+    /// List of blocked domains
+    #[structopt(long, use_delimiter = true)]
+    pub blocked_domains: Option<Vec<String>>,
 }
 
 impl Config {
@@ -83,14 +87,30 @@ impl Config {
     /// 3. The string is then parsed from TOML format into the `Config` struct using Serde's TOML deserialization.
     /// 4. If successful, the `Config` struct is returned. Otherwise, any encountered error is propagated.
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
-        let path = path.as_ref();
-
         let mut file = File::open(path)?;
-        
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
+        Ok(toml::from_str(&contents)?)
+    }
 
-        let config: Config = toml::from_str(&contents)?;
-        Ok(config)
+    /// Checks if a link should be followed based on the configuration.
+    /// This checks if the URL is within the allowed domains and not in blocked domains.
+    pub fn should_follow_link(&self, url: &str, _source_domain: &str) -> bool {
+        if let Ok(parsed_url) = Url::parse(url) {
+            let target_domain = parsed_url.host_str().unwrap_or("").to_string();
+
+            // Check blocked domains
+            if let Some(ref blocked) = self.blocked_domains {
+                if blocked.iter().any(|d| target_domain.contains(d)) {
+                    return false;
+                }
+            }
+
+            // If we have allowed domains, check if the target domain is allowed
+            if let Some(ref allowed) = self.allowed_domains {
+                return allowed.iter().any(|d| target_domain.contains(d));
+            }
+        }
+        true
     }
 }

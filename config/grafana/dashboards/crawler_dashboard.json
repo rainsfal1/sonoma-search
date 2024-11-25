@@ -25,7 +25,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "prometheus"
         },
         "fieldConfig": {
           "defaults": {
@@ -102,7 +102,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus"
             },
             "editorMode": "code",
             "expr": "pages_crawled_total",
@@ -117,7 +117,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "prometheus"
         },
         "fieldConfig": {
           "defaults": {
@@ -194,7 +194,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus"
             },
             "editorMode": "code",
             "expr": "crawl_errors_total",
@@ -209,7 +209,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "prometheus"
         },
         "fieldConfig": {
           "defaults": {
@@ -257,7 +257,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus"
             },
             "editorMode": "code",
             "expr": "crawl_queue_size",
@@ -272,7 +272,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "prometheus"
         },
         "fieldConfig": {
           "defaults": {
@@ -350,7 +350,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus"
             },
             "editorMode": "code",
             "expr": "rate(crawl_duration_seconds_sum[5m]) / rate(crawl_duration_seconds_count[5m])",

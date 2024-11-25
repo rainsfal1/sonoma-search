@@ -89,6 +89,10 @@ impl MetricsClient {
         PROCESSING_QUEUE_SIZE.set(size as f64);
     }
 
+    pub fn get_queue_size(&self) -> f64 {
+        PROCESSING_QUEUE_SIZE.get()
+    }
+
     #[allow(dead_code)]  // Used during Elasticsearch sync
     pub fn set_elasticsearch_docs_count(&self, count: i64) {
         ELASTICSEARCH_DOCS_COUNT.set(count as f64);

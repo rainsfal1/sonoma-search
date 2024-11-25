@@ -1,18 +1,18 @@
-use scraper::{Html, Selector};
+use scraper::{Html, Selector, ElementRef};
 use thiserror::Error;
 use url::{Url, ParseError};
 use sha2::{Sha256, Digest};
 use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
+use log::warn;
 
 #[derive(Error, Debug)]
 pub enum ParserError {
-    #[error("Failed to extract URLs: {0}")]
-    UrlExtractionError(String),
-    #[error("Selector parse error: {0}")]
-    SelectorParseError(#[from] scraper::error::SelectorErrorKind<'static>),
-    #[error("URL parse error: {0}")]
+    #[error("Failed to parse URL: {0}")]
     UrlParseError(#[from] ParseError),
+
+    #[error("Failed to parse selector: {0}")]
+    SelectorParseError(#[from] scraper::error::SelectorErrorKind<'static>),
 }
 
 /// Represents a parsed webpage with all its extracted information
@@ -56,7 +56,7 @@ pub fn parse_webpage(html: &str, url: &str, status: i32) -> Result<ParsedWebpage
 
     let title = extract_title(&document);
     let content = extract_content(&document); // This is still full content, to be summarized later
-    let links = extract_links(&document, &parsed_url)?;
+    let links = extract_links(&document, &parsed_url, true)?;
     let content_hash = calculate_hash(html);
     let (meta_title, meta_description, meta_keywords, other_metadata) = extract_metadata(&document);
 
@@ -77,27 +77,52 @@ pub fn parse_webpage(html: &str, url: &str, status: i32) -> Result<ParsedWebpage
     })
 }
 
-fn extract_links(parsed_html: &Html, base_url: &Url) -> Result<Vec<ParsedLink>, ParserError> {
-    let selector = Selector::parse("a[href]")?;
+pub fn extract_links(parsed_html: &Html, base_url: &Url, respect_nofollow: bool) -> Result<Vec<ParsedLink>, ParserError> {
+    let selector = Selector::parse("a[href]").map_err(|e| ParserError::SelectorParseError(e))?;
     let mut links = Vec::new();
+    let mut seen_urls = std::collections::HashSet::new();
 
     for element in parsed_html.select(&selector) {
         if let Some(href) = element.value().attr("href") {
-            if let Ok(resolved_url) = base_url.join(href) {
-                let anchor_text = element.text().collect::<String>().trim().to_string();
-                links.push(ParsedLink {
-                    target_url: resolved_url.into(),
-                    anchor_text: Some(anchor_text).filter(|s| !s.is_empty()),
-                });
+            // Check for nofollow if configured
+            if respect_nofollow {
+                if let Some(rel) = element.value().attr("rel") {
+                    if rel.contains("nofollow") {
+                        continue;
+                    }
+                }
+            }
+            
+            // Resolve relative URLs
+            match base_url.join(href) {
+                Ok(absolute_url) => {
+                    let url_str = absolute_url.to_string();
+                    if !seen_urls.contains(&url_str) {
+                        seen_urls.insert(url_str.clone());
+                        
+                        let anchor_text = element.text()
+                            .collect::<String>()
+                            .trim()
+                            .to_string();
+                        
+                        let final_text = match (anchor_text.is_empty(), element.value().attr("title")) {
+                            (false, _) => anchor_text,
+                            (true, Some(title)) => title.to_string(),
+                            (true, None) => String::new()
+                        };
+
+                        links.push(ParsedLink {
+                            target_url: url_str,
+                            anchor_text: Some(final_text).filter(|s| !s.is_empty()),
+                        });
+                    }
+                }
+                Err(e) => warn!("Failed to resolve URL '{}': {}", href, e),
             }
         }
     }
 
-    if links.is_empty() {
-        Err(ParserError::UrlExtractionError("No valid URLs found".to_string()))
-    } else {
-        Ok(links)
-    }
+    Ok(links)
 }
 
 fn extract_title(parsed_html: &Html) -> Option<String> {
@@ -111,43 +136,91 @@ fn extract_title(parsed_html: &Html) -> Option<String> {
 fn extract_content(parsed_html: &Html) -> Option<String> {
     let mut content = String::new();
 
-    // Wikipedia-specific content extraction
-    if let Ok(wiki_content) = Selector::parse("#mw-content-text") {
-        if let Some(element) = parsed_html.select(&wiki_content).next() {
-            // Remove navigation, tables, and other non-content elements
-            if let Ok(remove_selector) = Selector::parse(".navbox, .vertical-navbox, .infobox, .sidebar, table, .mw-editsection, .reference, .error") {
+    // Priority areas that typically contain main content
+    let content_selectors = [
+        // Main content containers
+        "article", "main", "[role='main']", ".main-content", "#main-content",
+        // Blog and article specific
+        ".post-content", ".article-content", ".entry-content", ".content",
+        // Documentation specific
+        ".documentation", ".docs-content", ".wiki-content",
+        // Generic content areas
+        "#content", ".content-area", "[itemprop='articleBody']",
+        // Fallback to any large text container
+        ".text-content", ".body-content"
+    ];
+
+    // Elements that usually contain noise
+    let noise_selector = Selector::parse(concat!(
+        "header, footer, nav, aside, .sidebar, .comments, .advertisement,",
+        ".share-buttons, .social-media, .related-posts, .recommended,",
+        ".navigation, .menu, .search, .popup, .modal, script, style,",
+        "[role='complementary'], [role='banner'], [role='contentinfo'],",
+        ".cookie-notice, .newsletter-signup, .subscription-box,",
+        "#comments, .comments-area, .widget-area"
+    )).unwrap_or_else(|_| Selector::parse("script, style").unwrap());
+
+    // First try to find main content areas
+    for selector in content_selectors.iter() {
+        if let Ok(sel) = Selector::parse(selector) {
+            if let Some(element) = parsed_html.select(&sel).next() {
+                // Remove noise elements
                 let mut html = element.html();
-                for el in parsed_html.select(&remove_selector) {
+                for el in parsed_html.select(&noise_selector) {
                     html = html.replace(&el.html(), "");
                 }
+                
+                // Parse the cleaned HTML
                 let fragment = Html::parse_fragment(&html);
-                content = fragment.root_element().text().collect::<Vec<_>>().join(" ");
-            }
-        }
-    }
-
-    // If not Wikipedia or no content found, try other common content areas
-    if content.is_empty() {
-        let main_selectors = [
-            "article", "main", "#content", ".content", ".post-content",
-            "[role='main']", ".entry-content", ".post", "#main-content",
-        ];
-
-        for selector in main_selectors.iter() {
-            if let Ok(sel) = Selector::parse(selector) {
-                if let Some(element) = parsed_html.select(&sel).next() {
-                    content = element.text().collect::<Vec<_>>().join(" ");
+                let text = fragment.root_element()
+                    .text()
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                
+                // If we found substantial content, use it
+                if text.split_whitespace().count() > 50 {
+                    content = text;
                     break;
                 }
             }
         }
     }
 
-    // If still no content, fall back to body
+    // If no content found in priority areas, try extracting from body
+    // but with smarter content detection
     if content.is_empty() {
         if let Ok(body_selector) = Selector::parse("body") {
             if let Some(body) = parsed_html.select(&body_selector).next() {
-                content = body.text().collect::<Vec<_>>().join(" ");
+                // Remove noise first
+                let mut html = body.html();
+                for el in parsed_html.select(&noise_selector) {
+                    html = html.replace(&el.html(), "");
+                }
+                
+                let fragment = Html::parse_fragment(&html);
+                
+                // Find paragraphs and other text-heavy elements
+                let text_selectors = [
+                    "p", "article", "section", "div > p",
+                    "[class*='text']", "[class*='content']",
+                    "h1 ~ p", "h2 ~ p", "h3 ~ p"
+                ];
+                
+                let mut text_blocks = Vec::new();
+                
+                for selector in text_selectors.iter() {
+                    if let Ok(sel) = Selector::parse(selector) {
+                        for element in fragment.select(&sel) {
+                            let text = element.text().collect::<String>();
+                            // Only include blocks with substantial text
+                            if text.split_whitespace().count() > 20 {
+                                text_blocks.push(text);
+                            }
+                        }
+                    }
+                }
+                
+                content = text_blocks.join(" ");
             }
         }
     }
@@ -157,16 +230,16 @@ fn extract_content(parsed_html: &Html) -> Option<String> {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
+        .replace(|c: char| !c.is_alphanumeric() && !c.is_whitespace() && c != '.' && c != ',' && c != '?' && c != '!', " ")
+        .replace("  ", " ")
         .trim()
         .to_string();
 
-    // Basic content cleaning
-    let content = content
-        .replace("[edit]", "")
-        .replace("Jump to navigation", "")
-        .replace("Jump to search", "");
-
-    Some(content).filter(|s| !s.is_empty() && s.split_whitespace().count() > 10)
+    if content.split_whitespace().count() < 30 {
+        None
+    } else {
+        Some(content)
+    }
 }
 
 fn calculate_hash(content: &str) -> String {
@@ -176,34 +249,44 @@ fn calculate_hash(content: &str) -> String {
     result.iter().map(|byte| format!("{:02x}", byte)).collect()
 }
 
+fn extract_meta_content<'a>(element: &'a ElementRef<'a>) -> Option<&'a str> {
+    element
+        .value()
+        .attr("content")
+        .or_else(|| element.text().next())
+}
+
 fn extract_metadata(document: &Html) -> (Option<String>, Option<String>, Option<String>, Option<Value>) {
-    let mut meta_title = None;
-    let mut meta_description = None;
-    let mut meta_keywords = None;
-    
-    // Try to get Wikipedia-specific metadata
-    if let Ok(sitename_selector) = Selector::parse("meta[property='og:site_name']") {
-        if let Some(element) = document.select(&sitename_selector).next() {
-            meta_title = element.value().attr("content").map(|s| s.to_string());
-        }
-    }
+    let meta_selectors = [
+        ("meta[name='title'], meta[property='og:title']", "content"),
+        ("meta[name='description'], meta[property='og:description']", "content"),
+        ("meta[name='keywords']", "content"),
+    ];
 
-    // Get standard meta tags
-    if let Ok(selector) = Selector::parse("meta[name='description'], meta[property='og:description']") {
-        if let Some(element) = document.select(&selector).next() {
-            meta_description = element.value().attr("content").map(|s| s.to_string());
-        }
-    }
+    let mut title = None;
+    let mut description = None;
+    let mut keywords = None;
 
-    if let Ok(selector) = Selector::parse("meta[name='keywords']") {
-        if let Some(element) = document.select(&selector).next() {
-            meta_keywords = element.value().attr("content").map(|s| s.to_string());
+    for (selector_str, _attr) in meta_selectors.iter() {
+        if let Ok(selector) = Selector::parse(selector_str) {
+            if let Some(element) = document.select(&selector).next() {
+                let content = extract_meta_content(&element)
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty());
+
+                match *selector_str {
+                    s if s.contains("title") => title = title.or(content),
+                    s if s.contains("description") => description = description.or(content),
+                    s if s.contains("keywords") => keywords = keywords.or(content),
+                    _ => {}
+                }
+            }
         }
     }
 
     let other_metadata = extract_other_metadata(document);
-    
-    (meta_title, meta_description, meta_keywords, other_metadata)
+
+    (title, description, keywords, other_metadata)
 }
 
 fn extract_other_metadata(document: &Html) -> Option<Value> {

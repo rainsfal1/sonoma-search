@@ -15,6 +15,7 @@ interface ElasticsearchSource {
   indexed_at: string;
   metadata: {
     site_name: string;
+    language: string;
   };
   content_summary: string;
   keywords: string[];
@@ -68,29 +69,31 @@ export async function search(query: string, page = 1, size = 10): Promise<Search
               multi_match: {
                 query,
                 fields: [
-                  'title^3',
-                  'meta_title^2.5',
-                  'meta_description^2',
-                  'body^1',
-                  'content_summary^1.5'
+                  'title^4',
+                  'meta_title^3',
+                  'meta_description^2.5',
+                  'content_summary^2',
+                  'body^1'
                 ],
-                type: 'most_fields',
+                type: 'best_fields',
                 tie_breaker: 0.3,
-                fuzziness: 'AUTO',
                 minimum_should_match: '80%'
               }
             },
+            filter: [
+              { term: { "domain": "developer.mozilla.org" } }
+            ],
             should: [
-              { exists: { field: 'page_rank' } },
-              { range: { page_rank: { gt: 0 } } }
+              { exists: { field: "page_rank", boost: 1.5 } },
+              { range: { page_rank: { gt: 0, boost: 2.0 } } }
             ]
           }
         },
         size,
         from: (page - 1) * size,
         sort: [
-          '_score',
-          { page_rank: { order: 'desc', missing: '_last' } }
+          "_score",
+          { page_rank: { order: "desc", missing: "_last" } }
         ],
         highlight: {
           pre_tags: ['<b>'],
@@ -152,7 +155,8 @@ export async function search(query: string, page = 1, size = 10): Promise<Search
           title: hit.highlight?.title?.[0] || hit._source.title || 'Untitled',
           url: hit._source.webpage_id || '',
           description: cleanDescription,
-          siteName: hit._source.metadata?.site_name || new URL(hit._source.webpage_id).hostname || 'Unknown',
+          siteName: hit._source.metadata?.site_name || 
+            (hit._source.webpage_id.startsWith('http') ? new URL(hit._source.webpage_id).hostname : 'Unknown'),
           timestamp,
           page_rank: hit._source.page_rank || 0,
           score: hit._score
