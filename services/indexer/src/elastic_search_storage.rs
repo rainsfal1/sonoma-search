@@ -4,6 +4,7 @@ use elasticsearch::{
     indices::{IndicesCreateParts, IndicesExistsParts},
     IndexParts,
     Error as EsError,
+    cat::CatCountParts,
 };
 use crate::document_models::ProcessedDoc;
 use serde_json::json;
@@ -12,6 +13,7 @@ use tokio::time::sleep;
 use crate::error::{IndexerError, IndexerResult};
 use log::{info, debug, warn, error};
 use std::env;
+use std::sync::Arc;
 
 pub async fn get_elasticsearch_client() -> IndexerResult<Elasticsearch> {
     let elasticsearch_url = env::var("ELASTICSEARCH_URL")
@@ -170,4 +172,27 @@ async fn store_document(client: &Elasticsearch, doc: &ProcessedDoc) -> Result<()
         )));
     }
     Ok(())
+}
+
+pub async fn get_elasticsearch_doc_count(client: &Arc<Elasticsearch>) -> Result<i64, IndexerError> {
+    let response = client
+        .cat()
+        .count(CatCountParts::Index(&["documents"]))
+        .format("json")
+        .send()
+        .await
+        .map_err(|e| IndexerError::Elasticsearch(e))?;
+
+    let count_response = response
+        .json::<Vec<serde_json::Value>>()
+        .await
+        .map_err(|e| IndexerError::Elasticsearch(e))?;
+
+    if let Some(first) = count_response.first() {
+        if let Some(count) = first.get("count").and_then(|c| c.as_str()) {
+            return count.parse().map_err(|_| IndexerError::Other("Failed to parse count".to_string()));
+        }
+    }
+
+    Ok(0)
 }

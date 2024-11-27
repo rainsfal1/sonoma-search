@@ -10,7 +10,27 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Sonoma Search",
-  description: "A modern search engine",
+  description: "A modern search engine with adaptive crawling",
+  icons: {
+    icon: [
+      {
+        url: "/images/mascot.jpg",
+        sizes: "32x32",
+        type: "image/jpeg"
+      },
+      {
+        url: "/images/mascot.jpg",
+        sizes: "16x16",
+        type: "image/jpeg"
+      }
+    ],
+    apple: {
+      url: "/images/mascot.jpg",
+      sizes: "180x180",
+      type: "image/jpeg"
+    },
+    shortcut: "/images/mascot.jpg"
+  }
 }
 
 export default function RootLayout({

@@ -1,33 +1,38 @@
 use reqwest::Client;
-use prometheus::{Registry, Gauge, Counter, Histogram, HistogramOpts, register_gauge, register_counter, register_histogram_with_registry};
+use prometheus::{Registry, Gauge, Counter, Histogram, HistogramOpts, register_gauge_with_registry, register_counter_with_registry, register_histogram_with_registry};
 use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref REGISTRY: Registry = Registry::new();
     
-    pub static ref PROCESSING_QUEUE_SIZE: Gauge = register_gauge!(
+    pub static ref PROCESSING_QUEUE_SIZE: Gauge = register_gauge_with_registry!(
         "processing_queue_size",
-        "Current size of the indexing queue"
+        "Current size of the indexing queue",
+        REGISTRY
     ).unwrap();
     
-    pub static ref ELASTICSEARCH_DOCS_COUNT: Gauge = register_gauge!(
+    pub static ref ELASTICSEARCH_DOCS_COUNT: Gauge = register_gauge_with_registry!(
         "elasticsearch_docs_count",
-        "Current number of documents in Elasticsearch"
+        "Current number of documents in Elasticsearch",
+        REGISTRY
     ).unwrap();
     
-    pub static ref DOCS_PROCESSED_TOTAL: Counter = register_counter!(
+    pub static ref DOCS_PROCESSED_TOTAL: Counter = register_counter_with_registry!(
         "docs_processed_total",
-        "Total number of documents processed"
+        "Total number of documents processed",
+        REGISTRY
     ).unwrap();
     
-    pub static ref INDEX_ERRORS_TOTAL: Counter = register_counter!(
+    pub static ref INDEX_ERRORS_TOTAL: Counter = register_counter_with_registry!(
         "index_errors_total",
-        "Total number of indexing errors"
+        "Total number of indexing errors",
+        REGISTRY
     ).unwrap();
     
-    pub static ref INDEX_CYCLES_COMPLETED_TOTAL: Counter = register_counter!(
+    pub static ref INDEX_CYCLES_COMPLETED_TOTAL: Counter = register_counter_with_registry!(
         "index_cycles_completed_total",
-        "Total number of completed indexing cycles"
+        "Total number of completed indexing cycles",
+        REGISTRY
     ).unwrap();
     
     pub static ref INDEX_DURATION_SECONDS: Histogram = register_histogram_with_registry!(
@@ -50,17 +55,16 @@ lazy_static! {
 }
 
 #[derive(Clone)]
-#[allow(dead_code)]  // Fields used internally by reqwest client
 pub struct MetricsClient {
-    base_url: String,
-    client: Client,
+    _client: Client,
+    _base_url: String,
 }
 
 impl MetricsClient {
     pub fn new(base_url: String) -> Self {
-        MetricsClient {
-            base_url,
-            client: Client::new(),
+        Self {
+            _client: Client::new(),
+            _base_url: base_url,
         }
     }
 
@@ -72,7 +76,7 @@ impl MetricsClient {
         INDEX_ERRORS_TOTAL.inc();
     }
 
-    #[allow(dead_code)]  // Used during index cycle completion
+    // Used during index cycle completion
     pub fn increment_index_cycles(&self) {
         INDEX_CYCLES_COMPLETED_TOTAL.inc();
     }
@@ -93,7 +97,7 @@ impl MetricsClient {
         PROCESSING_QUEUE_SIZE.get()
     }
 
-    #[allow(dead_code)]  // Used during Elasticsearch sync
+    // Used during Elasticsearch sync
     pub fn set_elasticsearch_docs_count(&self, count: i64) {
         ELASTICSEARCH_DOCS_COUNT.set(count as f64);
     }

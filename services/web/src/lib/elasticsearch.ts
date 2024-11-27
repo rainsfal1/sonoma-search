@@ -42,6 +42,7 @@ export interface SearchResult {
   timestamp: string;
   page_rank: number;
   score: number;
+  content_summary: string;
 }
 
 export interface SearchResponse {
@@ -80,9 +81,6 @@ export async function search(query: string, page = 1, size = 10): Promise<Search
                 minimum_should_match: '80%'
               }
             },
-            filter: [
-              { term: { "domain": "developer.mozilla.org" } }
-            ],
             should: [
               { exists: { field: "page_rank", boost: 1.5 } },
               { range: { page_rank: { gt: 0, boost: 2.0 } } }
@@ -159,7 +157,8 @@ export async function search(query: string, page = 1, size = 10): Promise<Search
             (hit._source.webpage_id.startsWith('http') ? new URL(hit._source.webpage_id).hostname : 'Unknown'),
           timestamp,
           page_rank: hit._source.page_rank || 0,
-          score: hit._score
+          score: hit._score,
+          content_summary: hit._source.content_summary || ''
         };
       }),
       total: hits.total.value,

@@ -1,6 +1,5 @@
 use actix_web::{web, App, HttpServer, HttpResponse};
 use prometheus::{Encoder, TextEncoder};
-use tokio::time::{interval, Duration};
 use log::{info, error};
 use std::error::Error;
 use std::path::PathBuf;
@@ -8,8 +7,11 @@ use env_logger::{Builder, Env};
 use crate::error::CrawlerError;
 use crate::config::Config;
 use crate::crawler::Crawler;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use crate::fetcher::create_http_client;
 use storage::PostgresStorage;
+use dotenv;
 
 async fn metrics() -> HttpResponse {
     let encoder = TextEncoder::new();
@@ -20,60 +22,6 @@ async fn metrics() -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/plain; version=0.0.4; charset=utf-8")
         .body(String::from_utf8(buffer).unwrap())
-}
-
-async fn run() -> Result<(), Box<dyn Error>> {
-    // Initialize metrics
-    info!("Initializing metrics...");
-    lazy_static::initialize(&metrics::QUEUE_SIZE);
-    lazy_static::initialize(&metrics::PAGES_CRAWLED);
-    lazy_static::initialize(&metrics::CRAWL_ERRORS);
-    lazy_static::initialize(&metrics::CRAWL_CYCLES);
-    lazy_static::initialize(&metrics::CRAWL_DURATION);
-    info!("Metrics initialized");
-
-    let current_dir = std::env::current_dir()?;
-    let config_path = find_config_file(&current_dir);
-    let config = Config::from_file(config_path)?;
-    let client = create_http_client()?;
-    
-    // Get database URL with better error handling
-    let database_url = std::env::var("DATABASE_URL")
-        .map_err(|_| CrawlerError::EnvError(std::env::VarError::NotPresent))?;
-    
-    let storage = PostgresStorage::new(&database_url).await?;
-
-    info!("Starting continuous crawl process");
-    let mut crawler = Crawler::new(client, config, storage);
-    let mut interval = interval(Duration::from_secs(300)); // 5 minute intervals
-    
-    // Run first crawl immediately
-    info!("Starting initial crawl cycle");
-    match crawler.crawl().await {
-        Ok(_) => {
-            info!("Initial crawl cycle completed");
-            metrics::increment_crawl_cycles();
-        }
-        Err(e) => {
-            error!("Initial crawl cycle failed: {}", e);
-            metrics::increment_crawl_errors();
-        }
-    }
-    
-    // Then run on interval
-    loop {
-        interval.tick().await;
-        match crawler.crawl().await {
-            Ok(_) => {
-                info!("Crawl cycle completed");
-                metrics::increment_crawl_cycles();
-            }
-            Err(e) => {
-                error!("Crawl cycle failed: {}", e);
-                metrics::increment_crawl_errors();
-            }
-        }
-    }
 }
 
 fn find_config_file(current_dir: &PathBuf) -> PathBuf {
@@ -90,8 +38,13 @@ fn find_config_file(current_dir: &PathBuf) -> PathBuf {
     current_dir.join("crawler").join("config.toml") // Default path if not found
 }
 
+mod api;
+
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // Load .env file
+    dotenv::dotenv().ok();
+    
     // Initialize logger
     Builder::from_env(Env::default().default_filter_or("info")).init();
     
@@ -103,28 +56,59 @@ async fn main() -> Result<(), Box<dyn Error>> {
         error!("DATABASE_URL environment variable is not set. Please set it before running the crawler.");
         std::process::exit(1);
     }
+
+    let current_dir = std::env::current_dir()?;
+    let config_path = find_config_file(&current_dir);
+    let config = Config::from_file(config_path)?;
+    let client = create_http_client()?;
+    let database_url = std::env::var("DATABASE_URL")
+        .map_err(|_| CrawlerError::EnvError(std::env::VarError::NotPresent))?;
+    let storage = PostgresStorage::new(&database_url).await?;
     
-    // Start metrics server in a separate task
-    let metrics_server = tokio::spawn(
-        HttpServer::new(|| {
-            App::new()
-                .route("/metrics", web::get().to(metrics))
-        })
-        .bind("127.0.0.1:9091")?
-        .run()
-    );
+    // Create crawler instance and wrap it in Arc<Mutex>
+    let crawler = Arc::new(Mutex::new(Crawler::new(client, config.clone(), storage)));
+    let crawler_data = web::Data::new(crawler.clone());
+    
+    // Start initial crawl in background
+    let crawler_clone = crawler.clone();
+    tokio::spawn(async move {
+        info!("Starting initial crawl with seed URLs...");
+        let crawler_guard = crawler_clone.lock().await;
+        if let Err(e) = crawler_guard.initialize().await {
+            error!("Failed to initialize crawler: {}", e);
+            return;
+        }
+        
+        if let Err(e) = crawler_guard.crawl_with_params(config.max_depth, config.max_pages).await {
+            error!("Initial crawl failed: {}", e);
+        }
+        info!("Initial crawl completed");
+    });
+    
+    // Start API server
+    let api_server = HttpServer::new(move || {
+        App::new()
+            .app_data(crawler_data.clone())
+            .route("/crawl", web::post().to(api::crawl))
+            .route("/status/{job_id}", web::get().to(api::status))
+    })
+    .bind("0.0.0.0:8000")?
+    .run();
+    
+    info!("API server started on http://0.0.0.0:8000");
+    
+    // Start metrics server
+    let metrics_server = HttpServer::new(|| {
+        App::new()
+            .route("/metrics", web::get().to(metrics))
+    })
+    .bind("0.0.0.0:9092")?
+    .run();
+    
+    info!("Metrics server started on http://0.0.0.0:9092/metrics");
 
-    info!("Metrics server started on http://127.0.0.1:9091/metrics");
-
-    // Run the crawler directly (not in a separate task)
-    if let Err(e) = run().await {
-        error!("Crawler error: {}", e);
-    }
-
-    // Wait for metrics server to finish if crawler exits
-    if let Err(e) = metrics_server.await? {
-        error!("Metrics server error: {}", e);
-    }
+    // Run both servers
+    tokio::try_join!(api_server, metrics_server)?;
 
     Ok(())
 }

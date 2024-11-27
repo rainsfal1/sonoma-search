@@ -1,18 +1,19 @@
 'use client';
 
 import * as React from "react"
-import { Moon, Sun, Search as SearchIcon, X, AlertCircle } from 'lucide-react'
+import { Moon, Sun, Search as SearchIcon, X, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useTheme } from "@/components/theme/ThemeProvider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Pagination } from "@/components/ui/pagination"
+import { CrawlerProgress } from "@/components/ui/crawler-progress"
 import type { SearchResult } from "@/lib/elasticsearch"
+import Image from 'next/image';
 
 function SearchPageContent() {
-  const { theme, toggleTheme } = useTheme()
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -22,8 +23,30 @@ function SearchPageContent() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [searchTime, setSearchTime] = React.useState(0)
+  const [currentPage, setCurrentPage] = React.useState(parseInt(searchParams.get('page') || '1'))
+  const [totalPages, setTotalPages] = React.useState(0)
+  const [crawlingStarted, setCrawlingStarted] = React.useState(false)
+  const [message, setMessage] = React.useState<string | null>(null)
+  const [isDark, setIsDark] = React.useState(false)
   
-  const handleSearch = React.useCallback(async (searchQuery: string) => {
+  React.useEffect(() => {
+    // Check if dark mode is enabled
+    const isDarkMode = document.documentElement.classList.contains('dark')
+    setIsDark(isDarkMode)
+  }, [])
+
+  const toggleTheme = () => {
+    const root = document.documentElement
+    const newIsDark = !isDark
+    if (newIsDark) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+    setIsDark(newIsDark)
+  }
+
+  const handleSearch = React.useCallback(async (searchQuery: string, page: number = 1) => {
     if (!searchQuery.trim()) {
       setResults([])
       setTotal(0)
@@ -32,132 +55,190 @@ function SearchPageContent() {
 
     setLoading(true)
     setError(null)
+    setMessage(null)
+    setCrawlingStarted(false)
 
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&page=${page}`)
       if (!response.ok) {
         throw new Error('Search request failed')
       }
       const data = await response.json()
-      setResults(data.results)
-      setTotal(data.total)
-      setSearchTime(data.took)
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      setResults(data.results || [])
+      setTotal(data.total || 0)
+      setSearchTime(data.took / 1000) // Convert to seconds
+      setTotalPages(data.totalPages || Math.ceil((data.total || 0) / 10))
+      
+      if (data.message) {
+        setMessage(data.message)
+      }
+      
+      if (data.crawlingStarted) {
+        setCrawlingStarted(true)
+      }
     } catch (err) {
-      setError('Search failed. Please try again later.')
-      setResults([])
-      setTotal(0)
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
-  }, [router])
+  }, [])
 
-  // Initial search on mount if query param exists
   React.useEffect(() => {
-    const initialQuery = searchParams.get('q')
-    if (initialQuery) {
-      handleSearch(initialQuery)
+    const q = searchParams.get('q')
+    const page = parseInt(searchParams.get('page') || '1')
+    if (q) {
+      setQuery(q)
+      handleSearch(q, page)
     }
   }, [searchParams, handleSearch])
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query)}`)
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    router.push(`/search?q=${encodeURIComponent(query)}&page=${page}`)
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
-          <div className="mr-4 hidden md:flex">
-            <Link href="/" className="mr-6 flex items-center space-x-2">
-              <span className="hidden font-bold sm:inline-block">Search Engine</span>
-            </Link>
-          </div>
-          <div className="flex flex-1 items-center space-x-2">
-            <form 
-              className="flex-1 flex items-center space-x-2"
-              onSubmit={(e) => {
-                e.preventDefault()
-                handleSearch(query)
-              }}
-            >
+        <div className="container flex h-14 items-center gap-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="relative w-8 h-8">
+              <Image
+                src="/images/mascot.jpg"
+                alt="Sonoma Search Mascot"
+                className="object-contain"
+                width={32}
+                height={32}
+                priority
+              />
+            </div>
+            <span className="font-bold text-primary">Sonoma</span>
+          </Link>
+
+          <form onSubmit={handleSubmit} className="flex-1 max-w-xl">
+            <div className="relative">
               <Input
                 type="search"
                 placeholder="Search..."
-                className="flex-1"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                className="w-full pl-10 pr-4"
               />
-              <Button type="submit" disabled={loading}>
-                {loading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : (
-                  <SearchIcon className="h-4 w-4" />
-                )}
-              </Button>
-            </form>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => toggleTheme()}
-            >
-              {theme === "light" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+              <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          </form>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="ml-auto"
+          >
+            {!isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
         </div>
       </header>
-
       <main className="container py-6">
+        {loading && !crawlingStarted && (
+          <div className="flex justify-center py-8">
+            <Skeleton className="h-12 w-12 rounded-full" />
+          </div>
+        )}
+
+        {crawlingStarted && (
+          <div className="flex flex-col items-center space-y-4 p-8 text-center">
+            <div className="relative w-32 h-8">
+              <div className="absolute inset-0">
+                <div className="h-full bg-gradient-to-r from-background via-primary/20 to-background animate-shimmer" />
+              </div>
+              <Image
+                src="/images/mascot.jpg"
+                alt="Sonoma Search Mascot"
+                className="object-contain absolute inset-0"
+                width={32}
+                height={32}
+                priority
+              />
+            </div>
+            <h3 className="text-lg font-semibold">Crawling the web for "{query}"...</h3>
+            <div className="w-full max-w-xs">
+              <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                <div className="h-full bg-primary animate-progress" />
+              </div>
+            </div>
+          </div>
+        )}
+        
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-
-        {loading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-[250px]" />
-                <Skeleton className="h-4 w-[450px]" />
-                <Skeleton className="h-3 w-[200px]" />
-              </div>
-            ))}
-          </div>
-        ) : results.length > 0 ? (
+        
+        {message && (
+          <Alert>
+            <AlertTitle>Notice</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+        
+        {!loading && !crawlingStarted && results.length > 0 && (
           <>
-            <p className="text-sm text-muted-foreground mb-4">
-              About {total.toLocaleString()} results ({(searchTime / 1000).toFixed(2)} seconds)
-            </p>
+            <div className="mb-4 text-sm text-muted-foreground">
+              About {total.toLocaleString()} results ({searchTime.toFixed(2)} seconds)
+            </div>
             <div className="space-y-6">
               {results.map((result, index) => (
-                <article key={index} className="space-y-1">
-                  <h2 className="text-lg font-semibold leading-snug">
-                    <a 
+                <div key={index} className="space-y-2">
+                  <h2 className="text-xl font-semibold">
+                    <a
                       href={result.url}
-                      className="hover:underline"
                       target="_blank"
                       rel="noopener noreferrer"
-                      dangerouslySetInnerHTML={{ __html: result.title }}
-                    />
+                      className="hover:underline"
+                    >
+                      {result.title || result.url}
+                    </a>
                   </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {result.siteName} · {result.timestamp}
-                  </p>
-                  <p 
-                    className="text-sm text-foreground/90"
-                    dangerouslySetInnerHTML={{ __html: result.description }}
-                  />
-                </article>
+                  <div className="text-sm text-muted-foreground">{result.url}</div>
+                  <p className="text-sm">{result.content_summary}</p>
+                </div>
               ))}
             </div>
+            {totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </>
-        ) : query && !loading && (
-          <p className="text-center text-muted-foreground py-8">
-            No results found for "{query}"
-          </p>
+        )}
+        
+        {!loading && !crawlingStarted && results.length === 0 && query && (
+          <Alert>
+            <AlertTitle>No Results Found</AlertTitle>
+            <AlertDescription>
+              Sorry, we couldn't find any results for your search query.
+            </AlertDescription>
+          </Alert>
         )}
       </main>
     </div>

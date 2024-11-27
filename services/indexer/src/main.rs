@@ -1,16 +1,16 @@
 use std::env;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use dotenv::dotenv;
 use log::{info, error, debug};
 use sqlx::postgres::PgPoolOptions;
-use elastic_search_storage::{get_elasticsearch_client};
+use elastic_search_storage::{get_elasticsearch_client, get_elasticsearch_doc_count};
 use async_processor::concurrent_process_docs;
 use env_logger::Env;
 use crate::error::IndexerError;
 use metrics::{MetricsClient, REGISTRY};
 use tokio::time::interval;
-use actix_web::{web, App, HttpServer, HttpResponse};
+use actix_web::{web, App, HttpServer, HttpResponse, Result as ActixResult};
 use prometheus::{Encoder, TextEncoder};
 
 mod db_indexer;
@@ -21,14 +21,18 @@ mod async_processor;
 mod error;
 mod metrics;
 
-async fn metrics() -> HttpResponse {
+async fn metrics() -> ActixResult<HttpResponse> {
     let encoder = TextEncoder::new();
     let mut buffer = vec![];
-    encoder.encode(&REGISTRY.gather(), &mut buffer).unwrap();
+    encoder.encode(&REGISTRY.gather(), &mut buffer)
+        .map_err(|e| {
+            error!("Failed to encode metrics: {}", e);
+            actix_web::error::ErrorInternalServerError("Failed to encode metrics")
+        })?;
     
-    HttpResponse::Ok()
-        .content_type("text/plain")
-        .body(buffer)
+    Ok(HttpResponse::Ok()
+        .content_type("text/plain; version=0.0.4")
+        .body(buffer))
 }
 
 #[tokio::main]
@@ -77,17 +81,21 @@ async fn main() -> Result<(), IndexerError> {
 
     // Start metrics server
     let metrics_port = env::var("METRICS_PORT")
-        .unwrap_or_else(|_| "9091".to_string())
+        .unwrap_or_else(|_| "9092".to_string())
         .parse::<u16>()
         .expect("METRICS_PORT must be a valid port number");
 
     info!("Starting metrics server on port {}", metrics_port);
-    let metrics_server = HttpServer::new(|| {
+    let metrics_server = HttpServer::new(move || {
         App::new()
+            .wrap(actix_web::middleware::Logger::default())
             .route("/metrics", web::get().to(metrics))
     })
     .bind(("0.0.0.0", metrics_port))
-    .expect("Failed to bind metrics server")
+    .map_err(|e| {
+        error!("Failed to bind metrics server: {}", e);
+        IndexerError::Server(e.to_string())
+    })?
     .run();
 
     // Spawn metrics server
@@ -100,18 +108,29 @@ async fn main() -> Result<(), IndexerError> {
         interval.tick().await;  // Wait for next interval
         let client_clone = Arc::clone(&es_client);
         let metrics_clone = Arc::clone(&metrics_client);
+        let pool_clone = pool.clone();
         
-        match concurrent_process_docs(pool.clone(), client_clone, &metrics_clone).await {
-            Ok(processed_count) => {
-                if processed_count == 0 {
-                    debug!("No documents to process, waiting for next interval");
-                } else {
-                    info!("Successfully processed {} documents", processed_count);
+        let start_time = Instant::now();
+        
+        match concurrent_process_docs(pool_clone, client_clone, &metrics_clone).await {
+            Ok(processed) => {
+                metrics_clone.increment_docs_processed();
+                metrics_clone.observe_index_duration(start_time.elapsed().as_secs_f64());
+                if processed > 0 {
+                    info!("Processed {} documents", processed);
                 }
             }
             Err(e) => {
                 error!("Error processing documents: {}", e);
+                metrics_clone.increment_index_errors();
             }
         }
+        
+        // Update Elasticsearch document count
+        if let Ok(count) = get_elasticsearch_doc_count(&es_client).await {
+            metrics_clone.set_elasticsearch_docs_count(count);
+        }
+        
+        metrics_clone.increment_index_cycles();
     }
 }

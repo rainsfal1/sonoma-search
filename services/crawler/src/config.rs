@@ -22,7 +22,7 @@ use url::Url;
 #[derive(Debug, Clone, Deserialize, StructOpt)]
 pub struct Config {
     /// URLs to start crawling from
-    #[structopt(long, use_delimiter = true, default_value = "https://mdn.dev,https://wikipedia.org")]
+    #[structopt(long, use_delimiter = true, default_value = "https://docs.rs,https://rust-lang.org,https://crates.io,https://blog.rust-lang.org,https://github.com/rust-lang")]
     pub seed_urls: Vec<String>,
 
     /// User agent string to identify the crawler

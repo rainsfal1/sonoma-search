@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  crawler:
+    build:
+      context: ../../
+      dockerfile: services/crawler/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/search_engine
+      - RUST_LOG=info,crawler=warn
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ranker:
+    build:
+      context: ../../
+      dockerfile: services/ranker/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/search_engine
+      - RUST_LOG=error,ranker=warn
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  indexer:
+    build:
+      context: ../../
+      dockerfile: services/indexer/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/search_engine
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - RUST_LOG=error,indexer=warn
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  web:
+    build:
+      context: ../../
+      dockerfile: services/web/Dockerfile
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=search_engine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../services/storage/src/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - crawler_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - logger.level=WARN
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - crawler_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - web
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+networks:
+  crawler_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  elasticsearch_data:

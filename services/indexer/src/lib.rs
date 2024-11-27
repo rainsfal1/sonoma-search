@@ -6,4 +6,3 @@ pub mod elastic_search_storage;
 pub mod error;
 pub mod metrics;
 pub mod postgres_utilities;
-pub mod display;
