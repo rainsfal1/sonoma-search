@@ -5,7 +5,7 @@ members = [
     "services/storage",
     "services/indexer",
     "services/ranker",
-    "services/searcher"
+    "services/searcher",
 ]
 
 # A Rust workspace is a collection of multiple Rust projects

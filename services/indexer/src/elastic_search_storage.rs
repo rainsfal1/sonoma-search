@@ -177,7 +177,7 @@ async fn store_document(client: &Elasticsearch, doc: &ProcessedDoc) -> Result<()
 pub async fn get_elasticsearch_doc_count(client: &Arc<Elasticsearch>) -> Result<i64, IndexerError> {
     let response = client
         .cat()
-        .count(CatCountParts::Index(&["documents"]))
+        .count(CatCountParts::Index(&["pages"]))
         .format("json")
         .send()
         .await

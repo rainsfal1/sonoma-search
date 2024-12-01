@@ -141,7 +141,8 @@ impl Crawler {
         info!("Starting crawl process");
         
         let mut pages_crawled = 0;
-        let mut errors = 0;
+        let mut _errors = 0;  // Using _errors to indicate intentionally unused
+        let start_time = Instant::now();
         metrics::set_queue_size(0);
         
         info!("Starting main crawl loop");
@@ -158,20 +159,29 @@ impl Crawler {
                         }
                     }
                 }
+                // Update queue size metric
+                metrics::set_queue_size(queue.len() as i64);
             }
 
             if batch.is_empty() {
                 info!("Queue is empty, crawling complete");
+                // Record cycle completion
+                metrics::increment_crawl_cycles();
+                let duration = start_time.elapsed().as_secs_f64();
+                metrics::CRAWL_DURATION.observe(duration);
                 break;
             }
 
             let queue_size = self.queue.lock().await.len();
-            let visited_count = pages_crawled;  // Use pages_crawled instead of visited set size
+            let visited_count = pages_crawled;
             info!("Current queue size: {}, visited count: {}", queue_size, visited_count);
-            metrics::set_queue_size(queue_size as i64);
 
             if visited_count >= max_pages {
                 info!("Reached maximum pages limit of {}", max_pages);
+                // Record cycle completion
+                metrics::increment_crawl_cycles();
+                let duration = start_time.elapsed().as_secs_f64();
+                metrics::CRAWL_DURATION.observe(duration);
                 break;
             }
 
@@ -197,34 +207,20 @@ impl Crawler {
 
                         info!("Successfully fetched {}", url);
                         self.visited.lock().await.insert(url.clone());
+                        pages_crawled += 1;
+                        metrics::increment_pages_crawled();
                         
                         if let Err(e) = self.process_page(&url, &content, status.as_u16() as i32, depth).await {
                             error!("Error processing page {}: {}", url, e);
-                            errors += 1;
                             metrics::increment_crawl_errors();
-                        } else {
-                            pages_crawled += 1;
-                            metrics::increment_pages_crawled();
+                            continue;
                         }
                     }
                     Err(e) => {
                         error!("Error fetching {}: {}", url, e);
-                        errors += 1;
                         metrics::increment_crawl_errors();
-                        self.visited.lock().await.insert(url);
                     }
                 }
-            }
-        }
-
-        if let Some(start_time) = *self.crawl_start_time.lock().await {
-            let duration = start_time.elapsed().as_secs_f64();
-            metrics::observe_crawl_duration(duration);
-            info!("Crawl cycle completed in {:.2} seconds", duration);
-            info!("Pages crawled: {}, Errors: {}", pages_crawled, errors);
-            
-            if pages_crawled > 0 {
-                metrics::increment_crawl_cycles();
             }
         }
 
@@ -407,6 +403,14 @@ impl Crawler {
                 message: format!("Found {} existing results for query: {}", count, query)
             })
         }
+    }
+
+    pub async fn get_queue_size(&self) -> usize {
+        self.queue.lock().await.len()
+    }
+
+    pub async fn get_visited_count(&self) -> usize {
+        self.visited.lock().await.len()
     }
 }
 

@@ -37,3 +37,6 @@ deploy/docker/data/
 # Web
 services/web/node_modules/
 services/web/.next/
+
+# Next.js build output
+.next/

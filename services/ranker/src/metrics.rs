@@ -1,68 +1,63 @@
+use prometheus::{Counter, Histogram, IntGauge, Gauge, register_int_gauge, register_gauge, register_counter, register_histogram};
+use lazy_static::lazy_static;
 use reqwest::Client;
 use std::error::Error;
-use log::error;
-use prometheus::{Registry, Gauge, Counter, Histogram, register_gauge, register_counter, register_histogram, HistogramOpts};
-use lazy_static::lazy_static;
+use log::{error, info};
 
 lazy_static! {
-    static ref REGISTRY: Registry = Registry::new();
-    
     // Gauges
-    static ref PAGES_TO_RANK: Gauge = register_gauge!(
-        "pages_to_rank",
+    pub static ref PAGES_TO_RANK: IntGauge = register_int_gauge!(
+        "ranker_pages_to_rank",
         "Number of pages to be ranked"
-    ).unwrap();
+    ).expect("Failed to create pages to rank gauge");
     
-    static ref GRAPH_SIZE: Gauge = register_gauge!(
-        "graph_size",
+    pub static ref GRAPH_SIZE: IntGauge = register_int_gauge!(
+        "ranker_graph_size",
         "Current size of the web graph"
-    ).unwrap();
+    ).expect("Failed to create graph size gauge");
     
-    static ref AVERAGE_PAGE_RANK: Gauge = register_gauge!(
-        "average_page_rank",
+    pub static ref AVERAGE_PAGE_RANK: Gauge = register_gauge!(
+        "ranker_average_page_rank",
         "Average PageRank across all pages"
-    ).unwrap();
+    ).expect("Failed to create average page rank gauge");
     
     // Counters
-    static ref RANK_CALCULATION_COMPLETED_TOTAL: Counter = register_counter!(
-        "rank_calculation_completed_total",
+    pub static ref RANK_CALCULATION_COMPLETED_TOTAL: Counter = register_counter!(
+        "ranker_calculation_completed_total",
         "Total number of completed rank calculations"
-    ).unwrap();
+    ).expect("Failed to create rank calculations counter");
     
-    static ref RANK_ERRORS_TOTAL: Counter = register_counter!(
-        "rank_errors_total",
+    pub static ref RANK_ERRORS_TOTAL: Counter = register_counter!(
+        "ranker_errors_total",
         "Total number of ranking errors"
-    ).unwrap();
+    ).expect("Failed to create rank errors counter");
     
-    static ref RANK_CYCLES_COMPLETED_TOTAL: Counter = register_counter!(
-        "rank_cycles_completed_total",
+    pub static ref RANK_CYCLES_COMPLETED_TOTAL: Counter = register_counter!(
+        "ranker_cycles_total",
         "Total number of completed ranking cycles"
-    ).unwrap();
+    ).expect("Failed to create rank cycles counter");
     
     // Histograms
-    static ref RANK_CALCULATION_DURATION_SECONDS: Histogram = register_histogram!(
-        HistogramOpts::new(
-            "rank_calculation_duration_seconds",
-            "Duration of rank calculations in seconds"
-        )
-        .buckets(vec![1.0, 5.0, 10.0, 30.0, 60.0, 120.0])
-    ).unwrap();
+    pub static ref RANK_CALCULATION_DURATION_SECONDS: Histogram = register_histogram!(
+        "ranker_calculation_duration_seconds",
+        "Duration of rank calculations in seconds"
+    ).expect("Failed to create rank calculation duration histogram");
     
-    static ref RANK_ITERATION_DURATION_SECONDS: Histogram = register_histogram!(
-        HistogramOpts::new(
-            "rank_iteration_duration_seconds",
-            "Duration of individual PageRank iterations in seconds"
-        )
-        .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0])
-    ).unwrap();
+    pub static ref RANK_ITERATION_DURATION_SECONDS: Histogram = register_histogram!(
+        "ranker_iteration_duration_seconds",
+        "Duration of individual PageRank iterations in seconds"
+    ).expect("Failed to create rank iteration duration histogram");
     
-    static ref RANK_CONVERGENCE_ITERATIONS: Histogram = register_histogram!(
-        HistogramOpts::new(
-            "rank_convergence_iterations",
+    pub static ref RANK_CONVERGENCE_ITERATIONS: Histogram = register_histogram!(
+        prometheus::HistogramOpts::new(
+            "ranker_convergence_iterations",
             "Number of iterations needed for PageRank convergence"
-        )
-        .buckets(vec![5.0, 10.0, 20.0, 30.0, 50.0])
-    ).unwrap();
+        ).buckets(vec![5.0, 10.0, 20.0, 30.0, 50.0])
+    ).expect("Failed to create rank convergence iterations histogram");
+}
+
+pub fn init_metrics() {
+    info!("All metrics registered successfully");
 }
 
 pub struct MetricsClient {

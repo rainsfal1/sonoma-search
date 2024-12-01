@@ -8,7 +8,7 @@ services:
       - RUST_LOG=info,crawler=debug
     ports:
       - "8000:8000"  # API port
-      - "9092:9092"  # Metrics port
+      - "9091:9091"  # Metrics port
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,7 +41,7 @@ services:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - RUST_LOG=error,indexer=warn
     ports:
-      - "9091:9091"  # Metrics port
+      - "9092:9092"  # Metrics port
     depends_on:
       postgres:
         condition: service_healthy
@@ -124,11 +124,14 @@ services:
     image: grafana/grafana:10.1.0
     volumes:
       - ../../config/grafana/datasources:/etc/grafana/provisioning/datasources
-      - ../../config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ../../config/grafana/dashboards/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ../../config/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/crawler_dashboard.json
+    user: "472:472"  # grafana:grafana
     ports:
       - "3001:3000"
     depends_on:

@@ -1,5 +1,5 @@
 use actix_web::{web, App, HttpServer, HttpResponse};
-use prometheus::{Encoder, TextEncoder};
+use prometheus::{Encoder, TextEncoder, Registry};
 use log::{info, error};
 use std::error::Error;
 use std::path::PathBuf;
@@ -51,6 +51,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("Starting crawler service...");
     info!("Checking environment variables...");
     
+    // Initialize metrics
+    info!("Initializing metrics...");
+    prometheus::default_registry()
+        .register(Box::new(crate::metrics::QUEUE_SIZE.clone()))
+        .expect("Failed to register queue size metric");
+    prometheus::default_registry()
+        .register(Box::new(crate::metrics::PAGES_CRAWLED.clone()))
+        .expect("Failed to register pages crawled metric");
+    prometheus::default_registry()
+        .register(Box::new(crate::metrics::CRAWL_ERRORS.clone()))
+        .expect("Failed to register crawl errors metric");
+    prometheus::default_registry()
+        .register(Box::new(crate::metrics::CRAWL_CYCLES.clone()))
+        .expect("Failed to register crawl cycles metric");
+    prometheus::default_registry()
+        .register(Box::new(crate::metrics::CRAWL_DURATION.clone()))
+        .expect("Failed to register crawl duration metric");
+    info!("Metrics initialized successfully");
+    
     // Check DATABASE_URL before starting any services
     if std::env::var("DATABASE_URL").is_err() {
         error!("DATABASE_URL environment variable is not set. Please set it before running the crawler.");
@@ -89,8 +108,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api_server = HttpServer::new(move || {
         App::new()
             .app_data(crawler_data.clone())
-            .route("/crawl", web::post().to(api::crawl))
-            .route("/status/{job_id}", web::get().to(api::status))
+            .service(api::crawl)
+            .service(api::get_job_status)
     })
     .bind("0.0.0.0:8000")?
     .run();
@@ -102,10 +121,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         App::new()
             .route("/metrics", web::get().to(metrics))
     })
-    .bind("0.0.0.0:9092")?
+    .bind("0.0.0.0:9091")?
     .run();
     
-    info!("Metrics server started on http://0.0.0.0:9092/metrics");
+    info!("Metrics server started on http://0.0.0.0:9091/metrics");
 
     // Run both servers
     tokio::try_join!(api_server, metrics_server)?;

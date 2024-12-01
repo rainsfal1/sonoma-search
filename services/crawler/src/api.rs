@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, get, post, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::crawler::Crawler;
@@ -34,6 +34,7 @@ pub struct CrawlResponse {
     pub suggested_queries: Vec<String>,
 }
 
+#[post("/crawl")]
 pub async fn crawl(
     crawler: web::Data<Arc<Mutex<Crawler>>>,
     request: web::Json<CrawlRequest>,
@@ -49,16 +50,16 @@ pub async fn crawl(
     
     // First check for existing results
     match crawler_guard.check_existing_results(&request_query).await {
-        Ok(status) => {
-            if !status.has_results && !force_crawl {
+        Ok(crawl_status) => {
+            if !crawl_status.has_results && !force_crawl {
                 // Return immediately with suggestions if no results and not forcing crawl
                 return HttpResponse::Ok().json(CrawlResponse {
                     job_id,
                     status: "no_results".to_string(),
-                    message: status.message,
+                    message: crawl_status.message,
                     has_results: false,
                     existing_results_count: 0,
-                    suggested_queries: status.suggested_queries,
+                    suggested_queries: crawl_status.suggested_queries,
                 });
             }
             
@@ -81,9 +82,9 @@ pub async fn crawl(
                     "Crawl job started for query: {} with max_depth: {}, max_pages: {}, priority: {}", 
                     request_query, max_depth, max_pages, priority
                 ),
-                has_results: status.has_results,
-                existing_results_count: status.existing_results_count,
-                suggested_queries: status.suggested_queries,
+                has_results: crawl_status.has_results,
+                existing_results_count: crawl_status.existing_results_count,
+                suggested_queries: crawl_status.suggested_queries,
             })
         }
         Err(e) => {
@@ -99,14 +100,14 @@ pub async fn crawl(
     }
 }
 
-#[get("/status/{job_id}")]
-pub async fn status(
+#[get("/job-status/{job_id}")]
+pub async fn get_job_status(
     crawler: web::Data<Arc<Mutex<Crawler>>>,
     id: web::Path<String>
 ) -> impl Responder {
     let crawler = crawler.lock().await;
-    let queue_size = crawler.queue.lock().await.len();
-    let pages_crawled = crawler.visited.lock().await.len();
+    let queue_size = crawler.get_queue_size().await;
+    let pages_crawled = crawler.get_visited_count().await;
     
     let status = if queue_size == 0 && pages_crawled > 0 {
         "completed"

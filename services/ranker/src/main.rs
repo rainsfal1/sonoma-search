@@ -7,8 +7,7 @@ use sqlx::postgres::PgPoolOptions;
 use tokio::time::interval;
 use env_logger::Env;
 use actix_web::{web, App, HttpServer, HttpResponse};
-use prometheus::{Encoder, TextEncoder, HistogramOpts};
-use lazy_static::lazy_static;
+use prometheus::{Encoder, TextEncoder};
 
 mod page_rank;
 mod postgres_utilities;
@@ -17,23 +16,6 @@ mod data_models;
 mod metrics;
 
 use crate::metrics::MetricsClient;
-
-lazy_static! {
-    static ref PAGES_TO_RANK: prometheus::Gauge = prometheus::Gauge::with_opts(
-        prometheus::opts!("pages_to_rank", "Number of pages to rank")
-    ).unwrap();
-    
-    static ref RANK_CALCULATION_DURATION_SECONDS: prometheus::Histogram = prometheus::Histogram::with_opts(
-        HistogramOpts::new(
-            "rank_calculation_duration_seconds",
-            "Duration of rank calculation in seconds"
-        ).buckets(vec![1.0, 5.0, 10.0, 30.0, 60.0, 120.0])
-    ).unwrap();
-    
-    static ref RANK_CALCULATION_COMPLETED_TOTAL: prometheus::Counter = prometheus::Counter::with_opts(
-        prometheus::opts!("rank_calculation_completed_total", "Total number of rank calculations completed")
-    ).unwrap();
-}
 
 async fn metrics() -> HttpResponse {
     let encoder = TextEncoder::new();
@@ -54,7 +36,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .filter_or("RUST_LOG", "info,ranker=info")
     ).init();
     
-    info!("Starting ranker service");
+    info!("Starting ranker service...");
+    
+    // Initialize metrics
+    info!("Initializing metrics...");
+    metrics::init_metrics();
+    info!("Metrics initialized successfully");
+    
     dotenv().ok();
     
     let database_url = env::var("DATABASE_URL")
@@ -78,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             App::new()
                 .route("/metrics", web::get().to(metrics))
         })
-        .bind("127.0.0.1:9093")?
+        .bind("0.0.0.0:9093")?
         .run()
     );
 
@@ -101,7 +89,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         
         let (page_links, unique_pages) = page_rank::prepare_page_links(rows);
-        PAGES_TO_RANK.set(unique_pages.len() as f64);
+        metrics::PAGES_TO_RANK.set(unique_pages.len() as i64);
+        
+        // Set graph size metric (total number of links)
+        let total_links: i64 = page_links.values().map(|links| links.len() as i64).sum();
+        metrics::GRAPH_SIZE.set(total_links);
         
         let page_ranks = page_rank::calculate_page_rank(&page_links, 0.85, 100);
         
@@ -110,7 +102,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 info!("Successfully ranked {} pages", unique_pages.len());
                 display_rank::display_rank_info(&page_ranks);
                 metrics_client.increment("rank_cycles_completed").await?;
-                RANK_CALCULATION_COMPLETED_TOTAL.inc();
+                metrics::RANK_CALCULATION_COMPLETED_TOTAL.inc();
             }
             Err(e) => {
                 error!("Error updating ranks: {}", e);
@@ -118,7 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         
-        RANK_CALCULATION_DURATION_SECONDS.observe(timer.elapsed_secs());
+        metrics::RANK_CALCULATION_DURATION_SECONDS.observe(timer.elapsed_secs());
         metrics_client.observe_histogram("rank_calculation_duration_seconds", timer.elapsed_secs()).await?;
     }
 }

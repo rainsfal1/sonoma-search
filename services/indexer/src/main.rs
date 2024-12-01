@@ -8,7 +8,7 @@ use elastic_search_storage::{get_elasticsearch_client, get_elasticsearch_doc_cou
 use async_processor::concurrent_process_docs;
 use env_logger::Env;
 use crate::error::IndexerError;
-use metrics::{MetricsClient, REGISTRY};
+use metrics::{MetricsClient};
 use tokio::time::interval;
 use actix_web::{web, App, HttpServer, HttpResponse, Result as ActixResult};
 use prometheus::{Encoder, TextEncoder};
@@ -24,14 +24,14 @@ mod metrics;
 async fn metrics() -> ActixResult<HttpResponse> {
     let encoder = TextEncoder::new();
     let mut buffer = vec![];
-    encoder.encode(&REGISTRY.gather(), &mut buffer)
+    encoder.encode(&prometheus::default_registry().gather(), &mut buffer)
         .map_err(|e| {
             error!("Failed to encode metrics: {}", e);
             actix_web::error::ErrorInternalServerError("Failed to encode metrics")
         })?;
     
     Ok(HttpResponse::Ok()
-        .content_type("text/plain; version=0.0.4")
+        .content_type("text/plain; version=0.0.4; charset=utf-8")
         .body(buffer))
 }
 
@@ -43,6 +43,11 @@ async fn main() -> Result<(), IndexerError> {
             .filter_or("RUST_LOG", "warn,indexer=info,elasticsearch=warn")
     ).init();
     
+    info!("Starting indexer service...");
+    
+    // Metrics are automatically registered via register_* macros in metrics.rs
+    info!("Metrics initialized via register_* macros");
+
     info!("Starting indexer process");
     dotenv().ok();
     
@@ -75,7 +80,7 @@ async fn main() -> Result<(), IndexerError> {
     elastic_search_storage::ensure_index_exists(&es_client).await?;
 
     let metrics_url = env::var("METRICS_URL")
-        .unwrap_or_else(|_| "http://localhost:9091".to_string());
+        .unwrap_or_else(|_| "http://localhost:9092".to_string());
     
     let metrics_client = Arc::new(MetricsClient::new(metrics_url));
 
@@ -114,7 +119,6 @@ async fn main() -> Result<(), IndexerError> {
         
         match concurrent_process_docs(pool_clone, client_clone, &metrics_clone).await {
             Ok(processed) => {
-                metrics_clone.increment_docs_processed();
                 metrics_clone.observe_index_duration(start_time.elapsed().as_secs_f64());
                 if processed > 0 {
                     info!("Processed {} documents", processed);
@@ -126,9 +130,16 @@ async fn main() -> Result<(), IndexerError> {
             }
         }
         
-        // Update Elasticsearch document count
-        if let Ok(count) = get_elasticsearch_doc_count(&es_client).await {
-            metrics_clone.set_elasticsearch_docs_count(count);
+        // Update Elasticsearch document count with proper error handling
+        match get_elasticsearch_doc_count(&es_client).await {
+            Ok(count) => {
+                metrics_clone.set_elasticsearch_docs_count(count);
+                debug!("Updated Elasticsearch document count: {}", count);
+            }
+            Err(e) => {
+                error!("Failed to get Elasticsearch document count: {}", e);
+                metrics_clone.increment_index_errors();
+            }
         }
         
         metrics_clone.increment_index_cycles();

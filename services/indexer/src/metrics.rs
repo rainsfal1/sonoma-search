@@ -1,57 +1,24 @@
 use reqwest::Client;
-use prometheus::{Registry, Gauge, Counter, Histogram, HistogramOpts, register_gauge_with_registry, register_counter_with_registry, register_histogram_with_registry};
+use prometheus::{Registry, Counter, Histogram, IntGauge, HistogramOpts, register_int_gauge, register_counter, register_histogram};
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref REGISTRY: Registry = Registry::new();
+    // Gauges
+    pub static ref PROCESSING_QUEUE_SIZE: IntGauge = register_int_gauge!("indexer_queue_size", "Current size of the indexing queue").expect("Failed to create queue size gauge");
     
-    pub static ref PROCESSING_QUEUE_SIZE: Gauge = register_gauge_with_registry!(
-        "processing_queue_size",
-        "Current size of the indexing queue",
-        REGISTRY
-    ).unwrap();
+    pub static ref ELASTICSEARCH_DOCS_COUNT: IntGauge = register_int_gauge!("indexer_docs_count", "Current number of documents in Elasticsearch").expect("Failed to create docs count gauge");
     
-    pub static ref ELASTICSEARCH_DOCS_COUNT: Gauge = register_gauge_with_registry!(
-        "elasticsearch_docs_count",
-        "Current number of documents in Elasticsearch",
-        REGISTRY
-    ).unwrap();
+    // Counters
+    pub static ref DOCS_PROCESSED_TOTAL: Counter = register_counter!("indexer_docs_processed_total", "Total number of documents processed").expect("Failed to create docs processed counter");
     
-    pub static ref DOCS_PROCESSED_TOTAL: Counter = register_counter_with_registry!(
-        "docs_processed_total",
-        "Total number of documents processed",
-        REGISTRY
-    ).unwrap();
+    pub static ref INDEX_ERRORS_TOTAL: Counter = register_counter!("indexer_errors_total", "Total number of indexing errors").expect("Failed to create index errors counter");
     
-    pub static ref INDEX_ERRORS_TOTAL: Counter = register_counter_with_registry!(
-        "index_errors_total",
-        "Total number of indexing errors",
-        REGISTRY
-    ).unwrap();
+    pub static ref INDEX_CYCLES_COMPLETED_TOTAL: Counter = register_counter!("indexer_cycles_total", "Total number of completed indexing cycles").expect("Failed to create index cycles counter");
     
-    pub static ref INDEX_CYCLES_COMPLETED_TOTAL: Counter = register_counter_with_registry!(
-        "index_cycles_completed_total",
-        "Total number of completed indexing cycles",
-        REGISTRY
-    ).unwrap();
+    // Histograms
+    pub static ref INDEX_DURATION_SECONDS: Histogram = register_histogram!("indexer_duration_seconds", "Duration of indexing operations in seconds").expect("Failed to create index duration histogram");
     
-    pub static ref INDEX_DURATION_SECONDS: Histogram = register_histogram_with_registry!(
-        HistogramOpts::new(
-            "index_duration_seconds",
-            "Duration of indexing operations in seconds"
-        )
-        .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0]),
-        REGISTRY
-    ).unwrap();
-    
-    pub static ref DOCUMENT_PROCESSING_DURATION_SECONDS: Histogram = register_histogram_with_registry!(
-        HistogramOpts::new(
-            "document_processing_duration_seconds",
-            "Duration of individual document processing in seconds"
-        )
-        .buckets(vec![0.01, 0.05, 0.1, 0.5, 1.0]),
-        REGISTRY
-    ).unwrap();
+    pub static ref DOCUMENT_PROCESSING_DURATION_SECONDS: Histogram = register_histogram!("indexer_doc_processing_duration_seconds", "Duration of individual document processing in seconds").expect("Failed to create document processing duration histogram");
 }
 
 #[derive(Clone)]
@@ -90,15 +57,15 @@ impl MetricsClient {
     }
 
     pub fn set_queue_size(&self, size: i64) {
-        PROCESSING_QUEUE_SIZE.set(size as f64);
+        PROCESSING_QUEUE_SIZE.set(size);
     }
 
-    pub fn get_queue_size(&self) -> f64 {
+    pub fn get_queue_size(&self) -> i64 {
         PROCESSING_QUEUE_SIZE.get()
     }
 
     // Used during Elasticsearch sync
     pub fn set_elasticsearch_docs_count(&self, count: i64) {
-        ELASTICSEARCH_DOCS_COUNT.set(count as f64);
+        ELASTICSEARCH_DOCS_COUNT.set(count);
     }
 }

@@ -1,4 +1,4 @@
-use prometheus::{Counter, Histogram, IntGauge, register_counter, register_histogram, register_int_gauge};
+use prometheus::{Counter, Histogram, IntGauge, register_int_gauge, register_counter, register_histogram};
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -27,8 +27,7 @@ lazy_static! {
     // Histograms
     pub static ref CRAWL_DURATION: Histogram = register_histogram!(
         "crawler_duration_seconds",
-        "Duration of crawl cycles in seconds",
-        vec![0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+        "Duration of crawl cycles in seconds"
     ).expect("Failed to create crawl duration histogram");
 }
 
