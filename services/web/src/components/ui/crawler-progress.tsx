@@ -18,16 +18,22 @@ export function CrawlerProgress({ query, onComplete }: CrawlerProgressProps) {
     const checkProgress = async () => {
       try {
         const response = await fetch(`/api/crawl/status`);
+        if (!response.ok) {
+          console.error("Failed to fetch crawl status");
+          return;
+        }
         const data = await response.json();
         
-        if (data.pages_crawled) {
+        if (data.pages_crawled !== undefined) {
           setPagesCrawled(data.pages_crawled);
-          // Assuming we want to crawl at least 50 pages
-          setProgress(Math.min((data.pages_crawled / 50) * 100, 100));
+          // Calculate progress based on queue size
+          const totalPages = data.pages_crawled + data.urls_in_queue;
+          const progress = totalPages > 0 ? (data.pages_crawled / totalPages) * 100 : 0;
+          setProgress(Math.min(progress, 100));
           setTimeRemaining(data.estimated_remaining);
         }
 
-        if (data.status === "completed") {
+        if (data.status === "completed" || data.status === "failed") {
           clearInterval(interval);
           onComplete?.();
         }
@@ -36,6 +42,8 @@ export function CrawlerProgress({ query, onComplete }: CrawlerProgressProps) {
       }
     };
 
+    // Initial check
+    checkProgress();
     interval = setInterval(checkProgress, 1000);
     return () => clearInterval(interval);
   }, [onComplete]);

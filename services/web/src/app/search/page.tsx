@@ -56,37 +56,84 @@ function SearchPageContent() {
     setLoading(true)
     setError(null)
     setMessage(null)
-    setCrawlingStarted(false)
-
+    
     try {
+      const startTime = performance.now()
       const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&page=${page}`)
-      if (!response.ok) {
-        throw new Error('Search request failed')
-      }
       const data = await response.json()
       
-      if (data.error) {
-        throw new Error(data.error)
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to search')
       }
 
-      setResults(data.results || [])
+      const endTime = performance.now()
+      setSearchTime((endTime - startTime) / 1000)
+      
+      // Ensure results is always an array
+      const searchResults = data.results || []
+      setResults(searchResults)
       setTotal(data.total || 0)
-      setSearchTime(data.took / 1000) // Convert to seconds
-      setTotalPages(data.totalPages || Math.ceil((data.total || 0) / 10))
-      
-      if (data.message) {
-        setMessage(data.message)
-      }
-      
-      if (data.crawlingStarted) {
-        setCrawlingStarted(true)
+      setTotalPages(Math.ceil((data.total || 0) / 10))
+
+      if (searchResults.length === 0) {
+        // Check if there's an ongoing crawl
+        const crawlResponse = await fetch('/api/crawl/status')
+        const crawlData = await crawlResponse.json()
+        
+        if (crawlData.status === 'in_progress') {
+          setCrawlingStarted(true)
+          setMessage('A crawl is already in progress. Please wait for it to complete and try your search again.')
+        } else {
+          setMessage('No results found.')
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : 'An error occurred while searching')
+      setResults([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const startCrawl = React.useCallback(async () => {
+    try {
+      // Check if there's an ongoing crawl first
+      const statusResponse = await fetch('/api/crawl/status')
+      const statusData = await statusResponse.json()
+      
+      if (statusData.status === 'in_progress') {
+        setMessage('A crawl is already in progress. Please wait for it to complete and try your search again.')
+        setCrawlingStarted(true)
+        return
+      }
+
+      // TODO: Implement sophisticated crawling logic
+      // - Expand query with synonyms
+      // - Determine relevant starting points
+      // - Set crawl depth based on query complexity
+      const response = await fetch('/api/crawl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query,
+          // TODO: Add additional parameters for sophisticated crawling
+          // synonyms: [...],
+          // depth: calculated_depth,
+          // startPoints: [...],
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to start crawl')
+      }
+
+      setCrawlingStarted(true)
+      setMessage('Starting specialized crawl for your query. This may take a few minutes...')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start crawl')
+    }
+  }, [query])
 
   React.useEffect(() => {
     const q = searchParams.get('q')
@@ -194,6 +241,9 @@ function SearchPageContent() {
           <Alert>
             <AlertTitle>Notice</AlertTitle>
             <AlertDescription>{message}</AlertDescription>
+            {message === 'No results found.' && (
+              <Button onClick={startCrawl}>Start Crawl</Button>
+            )}
           </Alert>
         )}
         
