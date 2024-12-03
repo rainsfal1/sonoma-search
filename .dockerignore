@@ -1,0 +1,25 @@
+# Rust build artifacts
+**/target/
+**/*.rs.bk
+
+# Node.js dependencies and build artifacts
+**/node_modules/
+**/.next/
+**/dist/
+**/.cache/
+
+# Development files
+**/.env*
+**/.git/
+**/.gitignore
+**/.DS_Store
+**/.idea/
+**/.vscode/
+
+# Docker files
+**/Dockerfile
+**/.dockerignore
+
+# Logs
+**/logs/
+**/*.log

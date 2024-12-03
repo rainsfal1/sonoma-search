@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO webpages (\n                id, url, domain, title, content_summary, fetch_timestamp, \n                last_updated_timestamp, status, content_hash, metadata,\n                meta_title, meta_description, meta_keywords,\n                ranked, last_ranked_at, page_rank\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)\n            ON CONFLICT (url) DO UPDATE\n            SET domain = EXCLUDED.domain,\n                title = COALESCE(webpages.title, EXCLUDED.title),\n                content_summary = COALESCE(webpages.content_summary, EXCLUDED.content_summary),\n                last_updated_timestamp = EXCLUDED.last_updated_timestamp,\n                status = COALESCE(webpages.status, EXCLUDED.status),\n                content_hash = COALESCE(webpages.content_hash, EXCLUDED.content_hash),\n                metadata = COALESCE(webpages.metadata, EXCLUDED.metadata),\n                meta_title = COALESCE(webpages.meta_title, EXCLUDED.meta_title),\n                meta_description = COALESCE(webpages.meta_description, EXCLUDED.meta_description),\n                meta_keywords = COALESCE(webpages.meta_keywords, EXCLUDED.meta_keywords),\n                ranked = COALESCE(webpages.ranked, EXCLUDED.ranked),\n                last_ranked_at = COALESCE(webpages.last_ranked_at, EXCLUDED.last_ranked_at),\n                page_rank = COALESCE(webpages.page_rank, EXCLUDED.page_rank)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Timestamptz",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "156a0cc02f2ed50afcfbc4e0cc7e9ca4e83cf313450186db3acc8bb1ed015a0d"
+}

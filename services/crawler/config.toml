@@ -1,0 +1,62 @@
+# Crawler Configuration
+
+# Seed URLs for crawling
+seed_urls = [
+    # Documentation
+    "https://developer.mozilla.org/en-US/docs/Web",
+    "https://www.w3schools.com",
+    # Tech News
+    "https://techcrunch.com",
+    "https://www.theverge.com",
+    # General Knowledge
+    "https://en.wikipedia.org/wiki/Main_Page",
+    # News
+    "https://www.reuters.com",
+    "https://apnews.com",
+    # Educational
+    "https://ocw.mit.edu",
+    "https://www.stanford.edu"
+]
+
+# Crawler identity
+user_agent = "CascadeCrawler/1.0 (+https://github.com/codeium/search-engine)"
+
+# Crawling parameters
+max_depth = 3
+max_pages = 10000
+concurrent_requests = 8
+request_delay = 750  # milliseconds
+min_quality_score = 40
+max_content_size = 5242880  # 5MB
+
+# Priority domains for focused crawling
+priority_domains = [
+    "developer.mozilla.org",
+    "w3schools.com",
+    "wikipedia.org",
+    "mit.edu",
+    "stanford.edu"
+]
+
+# Domain filtering
+allowed_domains = [
+    "developer.mozilla.org",
+    "w3schools.com",
+    "techcrunch.com",
+    "theverge.com",
+    "wikipedia.org",
+    "reuters.com",
+    "apnews.com",
+    "mit.edu",
+    "stanford.edu"
+]
+
+# Blocked domains (e.g., known spam or low-quality content sites)
+blocked_domains = [
+    "example-spam-site.com",
+    "low-quality-content.net"
+]
+
+# Link following behavior
+follow_external_links = true
+respect_nofollow = true

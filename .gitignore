@@ -1,4 +1,42 @@
-/target
-/crawler/crawled_pages
-/.idea
+# Rust
+/target/
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDEs and editors
+/.idea/
+/.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
 .env
+**/.env
+!.env.example
+!**/.env.example
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Generated files
+services/**/dist/
+services/**/build/
+
+# SQLx
+!services/.sqlx/
+services/.sqlx/db
+
+# Docker
+deploy/docker/data/
+.docker/
+
+# Web
+services/web/node_modules/
+services/web/.next/
+
+# Next.js build output
+.next/

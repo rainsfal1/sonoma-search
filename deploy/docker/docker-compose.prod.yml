@@ -1,0 +1,225 @@
+version: '3.8'
+
+services:
+  crawler:
+    build:
+      context: ../../
+      dockerfile: services/crawler/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/search_engine
+      - RUST_LOG=info,crawler=warn
+    ports:
+      - "8000:8000"
+      - "9091:9091"  # Metrics port
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  ranker:
+    build:
+      context: ../../
+      dockerfile: services/ranker/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/search_engine
+      - RUST_LOG=error,ranker=warn
+    ports:
+      - "9093:9093"  # Metrics port
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: alwaysPOSTGRES_PASSWORD=your_secure_password
+    GRAFANA_PASSWORD=your_secure_password
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+        reservations:
+          memory: 48M
+
+  indexer:
+    build:
+      context: ../../
+      dockerfile: services/indexer/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/search_engine
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - RUST_LOG=error,indexer=warn
+    ports:
+      - "9092:9092"  # Metrics port
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+        reservations:
+          memory: 48M
+
+  web:
+    build:
+      context: ../../
+      dockerfile: services/web/Dockerfile
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=search_engine
+      - LC_COLLATE=C
+      - LC_CTYPE=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../services/storage/src/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - crawler_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"  # Reduced from 256m
+      - logger.level=WARN
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - "indices.memory.index_buffer_size=10%"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - crawler_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    volumes:
+      - ../../config/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    volumes:
+      - ../../config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../../config/grafana/dashboards/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml:ro
+      - ../../config/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3001
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/crawler_dashboard.json
+    ports:
+      - "3001:3001"
+    depends_on:
+      - prometheus
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+    networks:
+      - crawler_net
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+        reservations:
+          memory: 16M
+
+networks:
+  crawler_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  elasticsearch_data:
+  prometheus_data:
+  grafana_data:
+POSTGRES_PASSWORD=your_secure_password
+GRAFANA_PASSWORD=your_secure_password
