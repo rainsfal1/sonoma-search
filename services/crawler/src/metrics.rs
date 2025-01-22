@@ -1,4 +1,4 @@
-use prometheus::{Counter, Histogram, IntGauge, Opts, Registry};
+use prometheus::{Counter, Histogram, IntGauge, Opts, HistogramOpts};
 use lazy_static::lazy_static;
 use std::sync::Once;
 
@@ -25,7 +25,7 @@ lazy_static! {
     
     // Histograms
     pub static ref CRAWL_DURATION: Histogram = Histogram::with_opts(
-        Opts::new("crawler_duration_seconds", "Duration of crawl cycles in seconds")
+        HistogramOpts::new("crawler_duration_seconds", "Duration of crawl cycles in seconds")
     ).expect("Failed to create crawl duration histogram");
 }
 
