@@ -31,40 +31,8 @@ jobs:
     - name: Build Docker images
       run: docker compose -f deploy/docker/docker-compose.yml build
 
-  verify-core-services:
-    name: Verify Core Services
-    needs: build-images
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Start core services
-      run: |
-        docker compose -f deploy/docker/docker-compose.yml up -d
-        echo "Waiting for services to initialize..."
-        sleep 30
-
-    - name: Check web frontend
-      run: |
-        curl -f http://localhost:3000 || exit 1
-        echo "✓ Web frontend is up"
-
-    - name: Check crawler API
-      run: |
-        curl -f http://localhost:8000/health || exit 1
-        echo "✓ Crawler service is up"
-
-    - name: Check Elasticsearch
-      run: |
-        curl -f http://localhost:9200/_cluster/health || exit 1
-        echo "✓ Elasticsearch is up"
-
-    - name: Cleanup core services
-      if: always()
-      run: docker compose -f deploy/docker/docker-compose.yml down -v
-
-  verify-metrics:
-    name: Verify Metrics Endpoints
+  verify-services:
+    name: Verify Services
     needs: build-images
     runs-on: ubuntu-latest
     steps:
@@ -73,31 +41,51 @@ jobs:
     - name: Start services
       run: |
         docker compose -f deploy/docker/docker-compose.yml up -d
-        echo "Waiting for metrics to initialize..."
-        sleep 30
+        echo "Waiting for services to initialize..."
+        sleep 45  # Increased wait time to ensure services are fully up
 
-    - name: Check metrics endpoints
+    - name: Check API Gateway
       run: |
+        curl -f http://localhost:8000/api/health || exit 1
+        echo "✓ API Gateway is up"
+
+    - name: Check Elasticsearch
+      run: |
+        curl -f http://localhost:9200/_cluster/health || exit 1
+        echo "✓ Elasticsearch is up"
+
+    - name: Check Prometheus
+      run: |
+        curl -f http://localhost:9090/-/healthy || exit 1
+        echo "✓ Prometheus is up"
+
+    - name: Check service metrics
+      run: |
+        # Check crawler metrics
         curl -f http://localhost:9091/metrics || exit 1
         echo "✓ Crawler metrics endpoint is up"
+        
+        # Check indexer metrics
         curl -f http://localhost:9092/metrics || exit 1
         echo "✓ Indexer metrics endpoint is up"
+        
+        # Check ranker metrics
         curl -f http://localhost:9093/metrics || exit 1
         echo "✓ Ranker metrics endpoint is up"
 
     - name: Show logs on failure
       if: failure()
       run: |
-        echo "Metrics verification failed. Showing logs:"
+        echo "Service verification failed. Showing logs:"
         docker compose -f deploy/docker/docker-compose.yml logs
 
-    - name: Cleanup metrics services
+    - name: Cleanup services
       if: always()
       run: docker compose -f deploy/docker/docker-compose.yml down -v
 
   deploy:
     name: Deploy (Mock)
-    needs: [verify-core-services, verify-metrics]
+    needs: [verify-services]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
@@ -106,8 +94,9 @@ jobs:
       run: |
         echo "🚀 Build and verification successful!"
         echo "Services ready for deployment:"
-        echo "✓ Web Frontend (Port 3000)"
-        echo "✓ Crawler Service (Port 8000)"
-        echo "✓ Indexer Service"
-        echo "✓ Ranker Service"
-        echo "✓ Monitoring Stack (Prometheus:9090, Grafana:3001)" 
+        echo "✓ API Gateway (Port 8000)"
+        echo "✓ Crawler Service (Metrics: 9091)"
+        echo "✓ Indexer Service (Metrics: 9092)"
+        echo "✓ Ranker Service (Metrics: 9093)"
+        echo "✓ Elasticsearch (Port 9200)"
+        echo "✓ Monitoring Stack (Prometheus: 9090, Grafana: 3001)" 
