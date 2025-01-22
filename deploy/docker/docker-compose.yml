@@ -4,7 +4,7 @@ services:
       context: ../../
       dockerfile: services/crawler/Dockerfile
     environment:
-      - DATABASE_URL=postgresql://postgres:262912@postgres:5432/search_engine
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/search_engine
       - RUST_LOG=info,crawler=debug
     ports:
       - "8000:8000"  # API port
@@ -21,7 +21,7 @@ services:
       context: ../../
       dockerfile: services/ranker/Dockerfile
     environment:
-      - DATABASE_URL=postgresql://postgres:262912@postgres:5432/search_engine
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/search_engine
       - RUST_LOG=error,ranker=warn
     ports:
       - "9093:9093"  # Metrics port
@@ -37,7 +37,7 @@ services:
       context: ../../
       dockerfile: services/indexer/Dockerfile
     environment:
-      - DATABASE_URL=postgresql://postgres:262912@postgres:5432/search_engine
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/search_engine
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - RUST_LOG=error,indexer=warn
     ports:
@@ -70,7 +70,7 @@ services:
     image: postgres:15
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=262912
+      - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=search_engine
     ports:
       - "5432:5432"
