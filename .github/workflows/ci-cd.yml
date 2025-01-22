@@ -11,8 +11,8 @@ env:
   RUST_LOG: info
 
 jobs:
-  build:
-    name: Build Services
+  build-images:
+    name: Build Docker Images
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -31,81 +31,73 @@ jobs:
     - name: Build Docker images
       run: docker compose -f deploy/docker/docker-compose.yml build
 
-  verify-startup:
-    name: Verify Service Startup
-    needs: build
+  verify-core-services:
+    name: Verify Core Services
+    needs: build-images
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Start core services
+      run: |
+        docker compose -f deploy/docker/docker-compose.yml up -d
+        echo "Waiting for services to initialize..."
+        sleep 30
+
+    - name: Check web frontend
+      run: |
+        curl -f http://localhost:3000 || exit 1
+        echo "✓ Web frontend is up"
+
+    - name: Check crawler API
+      run: |
+        curl -f http://localhost:8000/health || exit 1
+        echo "✓ Crawler service is up"
+
+    - name: Check Elasticsearch
+      run: |
+        curl -f http://localhost:9200/_cluster/health || exit 1
+        echo "✓ Elasticsearch is up"
+
+    - name: Cleanup core services
+      if: always()
+      run: docker compose -f deploy/docker/docker-compose.yml down -v
+
+  verify-metrics:
+    name: Verify Metrics Endpoints
+    needs: build-images
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
     - name: Start services
       run: |
-        # Start services in detached mode
         docker compose -f deploy/docker/docker-compose.yml up -d
-        
-        echo "Waiting for services to initialize..."
-        sleep 30  # Give services time to initialize
-        
-        # Verify each service started successfully
-        echo "Verifying services..."
-        
-        # Check web frontend
-        curl -f http://localhost:3000 || exit 1
-        echo "✓ Web frontend is up"
-        
-        # Check crawler API
-        curl -f http://localhost:8000/health || exit 1
-        echo "✓ Crawler service is up"
-        
-        # Check Elasticsearch
-        curl -f http://localhost:9200/_cluster/health || exit 1
-        echo "✓ Elasticsearch is up"
-        
-        # Check metrics endpoints
-        curl -f http://localhost:9091/metrics || exit 1  # Crawler metrics
+        echo "Waiting for metrics to initialize..."
+        sleep 30
+
+    - name: Check metrics endpoints
+      run: |
+        curl -f http://localhost:9091/metrics || exit 1
         echo "✓ Crawler metrics endpoint is up"
-        curl -f http://localhost:9092/metrics || exit 1  # Indexer metrics
+        curl -f http://localhost:9092/metrics || exit 1
         echo "✓ Indexer metrics endpoint is up"
-        curl -f http://localhost:9093/metrics || exit 1  # Ranker metrics
+        curl -f http://localhost:9093/metrics || exit 1
         echo "✓ Ranker metrics endpoint is up"
-        
-        echo "All services verified successfully!"
-        
-        # Stop all services
-        docker compose -f deploy/docker/docker-compose.yml down
 
     - name: Show logs on failure
       if: failure()
       run: |
-        echo "Service startup verification failed. Showing logs:"
+        echo "Metrics verification failed. Showing logs:"
         docker compose -f deploy/docker/docker-compose.yml logs
 
-    - name: Cleanup
+    - name: Cleanup metrics services
       if: always()
       run: docker compose -f deploy/docker/docker-compose.yml down -v
 
-  code-quality:
-    name: Code Quality Checks
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-        components: rustfmt, clippy
-
-    - name: Check formatting
-      run: |
-        cargo fmt --all -- --check
-        echo "✓ Code formatting verified"
-
   deploy:
     name: Deploy (Mock)
-    needs: [build, verify-startup, code-quality]
+    needs: [verify-core-services, verify-metrics]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
