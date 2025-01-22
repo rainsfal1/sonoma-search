@@ -1,0 +1,164 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_LOG: info
+
+jobs:
+  test:
+    name: Test Rust Services
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: search_engine
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -s http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Check formatting
+      run: cargo fmt -- --check
+
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+
+    - name: Run tests
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/search_engine
+        ELASTICSEARCH_URL: http://localhost:9200
+      run: cargo test --verbose
+
+  build:
+    name: Build Docker Images
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [crawler, web, indexer, ranker]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build ${{ matrix.service }} image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: services/${{ matrix.service }}/Dockerfile
+        push: false
+        tags: sonoma/${{ matrix.service }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  integration-test:
+    name: Integration Tests
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Start services with Docker Compose
+      run: docker-compose -f deploy/docker/docker-compose.yml up -d
+
+    - name: Wait for services to be ready
+      run: |
+        # Wait for services to be healthy
+        for i in {1..30}; do
+          if curl -s http://localhost:3000 >/dev/null && \
+             curl -s http://localhost:8000/health >/dev/null && \
+             curl -s http://localhost:9200/_cluster/health | grep -q '"status":"green"'; then
+            echo "All services are ready!"
+            exit 0
+          fi
+          echo "Waiting for services to be ready... ($i/30)"
+          sleep 10
+        done
+        echo "Services failed to become ready in time"
+        exit 1
+
+    - name: Run integration tests
+      run: |
+        # Check web frontend
+        curl -f http://localhost:3000 || exit 1
+        # Check crawler API
+        curl -f http://localhost:8000/health || exit 1
+        # Check Elasticsearch
+        curl -f http://localhost:9200/_cluster/health || exit 1
+        # Check Prometheus metrics endpoints
+        curl -f http://localhost:9091/metrics || exit 1  # Crawler metrics
+        curl -f http://localhost:9092/metrics || exit 1  # Indexer metrics
+        curl -f http://localhost:9093/metrics || exit 1  # Ranker metrics
+
+    - name: Show logs on failure
+      if: failure()
+      run: docker-compose -f deploy/docker/docker-compose.yml logs
+
+    - name: Cleanup
+      if: always()
+      run: docker-compose -f deploy/docker/docker-compose.yml down -v
+
+  deploy:
+    name: Deploy (Mock)
+    needs: integration-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Deploy notification
+      run: |
+        echo "🚀 Deployment would happen here in a real scenario"
+        echo "Services ready to be deployed:"
+        echo "- Web Frontend (Port 3000)"
+        echo "- Crawler Service (Port 8000)"
+        echo "- Indexer Service"
+        echo "- Ranker Service"
+        echo "- Monitoring Stack (Prometheus:9090, Grafana:3001)" 
