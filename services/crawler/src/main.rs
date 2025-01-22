@@ -1,5 +1,5 @@
 use actix_web::{web, App, HttpServer, HttpResponse};
-use prometheus::{Encoder, TextEncoder, Registry};
+use prometheus::{Encoder, TextEncoder};
 use log::{info, error};
 use std::error::Error;
 use std::path::PathBuf;
@@ -53,21 +53,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     // Initialize metrics
     info!("Initializing metrics...");
-    prometheus::default_registry()
-        .register(Box::new(crate::metrics::QUEUE_SIZE.clone()))
-        .expect("Failed to register queue size metric");
-    prometheus::default_registry()
-        .register(Box::new(crate::metrics::PAGES_CRAWLED.clone()))
-        .expect("Failed to register pages crawled metric");
-    prometheus::default_registry()
-        .register(Box::new(crate::metrics::CRAWL_ERRORS.clone()))
-        .expect("Failed to register crawl errors metric");
-    prometheus::default_registry()
-        .register(Box::new(crate::metrics::CRAWL_CYCLES.clone()))
-        .expect("Failed to register crawl cycles metric");
-    prometheus::default_registry()
-        .register(Box::new(crate::metrics::CRAWL_DURATION.clone()))
-        .expect("Failed to register crawl duration metric");
+    crate::metrics::init_metrics();
     info!("Metrics initialized successfully");
     
     // Check DATABASE_URL before starting any services
