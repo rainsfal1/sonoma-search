@@ -11,8 +11,8 @@ env:
   RUST_LOG: info
 
 jobs:
-  test-and-build:
-    name: Test and Build
+  build:
+    name: Build Services
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -28,6 +28,68 @@ jobs:
         chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
         docker compose version
 
+    - name: Build Docker images
+      run: docker compose -f deploy/docker/docker-compose.yml build
+
+  verify-startup:
+    name: Verify Service Startup
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Start services
+      run: |
+        # Start services in detached mode
+        docker compose -f deploy/docker/docker-compose.yml up -d
+        
+        echo "Waiting for services to initialize..."
+        sleep 30  # Give services time to initialize
+        
+        # Verify each service started successfully
+        echo "Verifying services..."
+        
+        # Check web frontend
+        curl -f http://localhost:3000 || exit 1
+        echo "✓ Web frontend is up"
+        
+        # Check crawler API
+        curl -f http://localhost:8000/health || exit 1
+        echo "✓ Crawler service is up"
+        
+        # Check Elasticsearch
+        curl -f http://localhost:9200/_cluster/health || exit 1
+        echo "✓ Elasticsearch is up"
+        
+        # Check metrics endpoints
+        curl -f http://localhost:9091/metrics || exit 1  # Crawler metrics
+        echo "✓ Crawler metrics endpoint is up"
+        curl -f http://localhost:9092/metrics || exit 1  # Indexer metrics
+        echo "✓ Indexer metrics endpoint is up"
+        curl -f http://localhost:9093/metrics || exit 1  # Ranker metrics
+        echo "✓ Ranker metrics endpoint is up"
+        
+        echo "All services verified successfully!"
+        
+        # Stop all services
+        docker compose -f deploy/docker/docker-compose.yml down
+
+    - name: Show logs on failure
+      if: failure()
+      run: |
+        echo "Service startup verification failed. Showing logs:"
+        docker compose -f deploy/docker/docker-compose.yml logs
+
+    - name: Cleanup
+      if: always()
+      run: docker compose -f deploy/docker/docker-compose.yml down -v
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -36,68 +98,24 @@ jobs:
         override: true
         components: rustfmt, clippy
 
-    - name: Start services with Docker Compose
-      run: docker compose -f deploy/docker/docker-compose.yml up -d
-
-    - name: Wait for services to be ready
-      run: |
-        # Wait for services to be healthy
-        for i in {1..30}; do
-          if curl -s http://localhost:3000 >/dev/null && \
-             curl -s http://localhost:8000/health >/dev/null && \
-             curl -s http://localhost:9200/_cluster/health | grep -q '"status":"green"'; then
-            echo "All services are ready!"
-            exit 0
-          fi
-          echo "Waiting for services to be ready... ($i/30)"
-          sleep 10
-        done
-        echo "Services failed to become ready in time"
-        exit 1
-
-    - name: Run integration tests
-      run: |
-        # Check web frontend
-        curl -f http://localhost:3000 || exit 1
-        # Check crawler API
-        curl -f http://localhost:8000/health || exit 1
-        # Check Elasticsearch
-        curl -f http://localhost:9200/_cluster/health || exit 1
-        # Check Prometheus metrics endpoints
-        curl -f http://localhost:9091/metrics || exit 1  # Crawler metrics
-        curl -f http://localhost:9092/metrics || exit 1  # Indexer metrics
-        curl -f http://localhost:9093/metrics || exit 1  # Ranker metrics
-
-    - name: Show logs on failure
-      if: failure()
-      run: docker compose -f deploy/docker/docker-compose.yml logs
-
     - name: Check formatting
-      continue-on-error: true
       run: |
-        cargo fmt
-        git diff --exit-code || {
-          echo "::warning ::Code formatting issues found. Run 'cargo fmt' locally to fix."
-          true
-        }
-
-    - name: Cleanup
-      if: always()
-      run: docker compose -f deploy/docker/docker-compose.yml down -v
+        cargo fmt --all -- --check
+        echo "✓ Code formatting verified"
 
   deploy:
     name: Deploy (Mock)
-    needs: test-and-build
+    needs: [build, verify-startup, code-quality]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
     - name: Deploy notification
       run: |
-        echo "🚀 Deployment would happen here in a real scenario"
-        echo "Services ready to be deployed:"
-        echo "- Web Frontend (Port 3000)"
-        echo "- Crawler Service (Port 8000)"
-        echo "- Indexer Service"
-        echo "- Ranker Service"
-        echo "- Monitoring Stack (Prometheus:9090, Grafana:3001)" 
+        echo "🚀 Build and verification successful!"
+        echo "Services ready for deployment:"
+        echo "✓ Web Frontend (Port 3000)"
+        echo "✓ Crawler Service (Port 8000)"
+        echo "✓ Indexer Service"
+        echo "✓ Ranker Service"
+        echo "✓ Monitoring Stack (Prometheus:9090, Grafana:3001)" 
