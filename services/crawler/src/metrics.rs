@@ -8,25 +8,30 @@ lazy_static! {
     // Gauges
     pub static ref QUEUE_SIZE: IntGauge = IntGauge::with_opts(
         Opts::new("crawler_queue_size", "Current number of URLs in the crawler queue")
-    ).expect("Failed to create queue size gauge");
+    )
+    .expect("Failed to create queue size gauge");
     
     // Counters
     pub static ref PAGES_CRAWLED: Counter = Counter::with_opts(
         Opts::new("crawler_pages_crawled", "Total number of pages crawled")
-    ).expect("Failed to create pages crawled counter");
+    )
+    .expect("Failed to create pages crawled counter");
     
     pub static ref CRAWL_ERRORS: Counter = Counter::with_opts(
         Opts::new("crawler_errors_total", "Total number of crawl errors")
-    ).expect("Failed to create crawl errors counter");
+    )
+    .expect("Failed to create crawl errors counter");
     
     pub static ref CRAWL_CYCLES: Counter = Counter::with_opts(
         Opts::new("crawler_cycles_total", "Total number of completed crawl cycles")
-    ).expect("Failed to create crawl cycles counter");
+    )
+    .expect("Failed to create crawl cycles counter");
     
     // Histograms
     pub static ref CRAWL_DURATION: Histogram = Histogram::with_opts(
         HistogramOpts::new("crawler_duration_seconds", "Duration of crawl cycles in seconds")
-    ).expect("Failed to create crawl duration histogram");
+    )
+    .expect("Failed to create crawl duration histogram");
 }
 
 pub fn init_metrics() {
