@@ -1,4 +1,7 @@
-# Sonoma Search Documentation
+<h1 style="line-height: 50px; margin: 0;">
+    <img src="services/web/public/images/mascot.jpg" alt="Sonoma Search Icon" width="50" style="vertical-align: text-bottom; margin-right: 8px;">
+    Sonoma Search Documentation
+</h1>
 
 Welcome to the Sonoma Search documentation. This documentation provides comprehensive information about the architecture, components, and operation of the Sonoma Search engine.
 
