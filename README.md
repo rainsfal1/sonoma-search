@@ -1,7 +1,8 @@
-<h1 style="line-height: 50px; margin: 0;">
-    <img src="services/web/public/images/mascot.jpg" alt="Sonoma Search Icon" width="50" style="vertical-align: text-bottom; margin-right: 8px;">
-    Sonoma Search Documentation
-</h1>
+<p align="center">
+  <a href="https://nust.edu.pk/"><img width="200" height="200" src="services/web/public/images/nust.svg"/></a> &nbsp;&nbsp;&nbsp;&nbsp; <a href="https://seecs.nust.edu.pk/"><img width="200" height="200" src="services/web/public/images/mascot.jpg"/></a>
+</p>
+
+# Sonoma Search Documentation</h1>
 
 Welcome to the Sonoma Search documentation. This documentation provides comprehensive information about the architecture, components, and operation of the Sonoma Search engine.
 
