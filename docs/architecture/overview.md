@@ -5,84 +5,87 @@ Sonoma Search is built using a microservices architecture, designed for scalabil
 ## System Architecture
 
 ```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'fontFamily': 'Arial',
-    'fontSize': '16px',
-    'primaryColor': '#89DCEB',
-    'primaryTextColor': '#ffffff',
-    'primaryBorderColor': '#74C7EC',
-    'lineColor': '#CBA6F7',
-    'secondaryColor': '#F5C2E7',
-    'tertiaryColor': '#ABE9B3',
-    'labelBackground': '#00000000',
-    'labelTextColor': '#ffffff',
-    'edgeLabelBackground': '#00000000',
-    'nodeTextColor': '#ffffff'
-  }
-}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: Arial
+    fontSize: 16px
+    primaryColor: '#89DCEB'
+    primaryTextColor: '#ffffff'
+    primaryBorderColor: '#74C7EC'
+    lineColor: '#CBA6F7'
+    secondaryColor: '#F5C2E7'
+    tertiaryColor: '#ABE9B3'
+    labelBackground: '#00000000'
+    labelTextColor: '#ffffff'
+    edgeLabelBackground: '#00000000'
+  layout: elk
+---
 flowchart TD
-    %% Frontend Layer
-    subgraph Frontend["Frontend Layer"]
-        A[Web Frontend]-->|"HTTP Requests"|B[API Gateway]
-        style A fill:#F5C2E7,stroke:#181825,color:#ffffff
-        style B fill:#89DCEB,stroke:#181825,color:#ffffff
-    end
-    
-    %% Search Layer
-    subgraph Search["Search Layer"]
-        B-->|"Search Requests"|C[Searcher Service]
-        B-->|"Ranking Requests"|D[Ranker Service]
-        C-->|"Query"|E[Elasticsearch]
-        D-->|"Score"|E
-        style C fill:#ABE9B3,stroke:#181825,color:#ffffff
-        style D fill:#F9E2AF,stroke:#181825,color:#ffffff
-        style E fill:#FAB387,stroke:#181825,color:#ffffff
-    end
+ subgraph Frontend["Frontend Layer"]
+        B["API Gateway"]
+        A["Web Frontend"]
+  end
+ subgraph Search["Search Layer"]
+        C["Searcher Service"]
+        D["Ranker Service"]
+        E["Elasticsearch"]
+  end
+ subgraph Data["Data Layer"]
+        H["Web Pages"]
+        G["Crawler Service"]
+        I[("PostgreSQL")]
+        F["Indexer Service"]
+        J["Storage Service"]
+  end
+ subgraph Deployment["Deployment Layer"]
+        S["Docker Registry"]
+        R["GitHub Actions"]
+  end
+ subgraph Monitoring["Monitoring Layer"]
+        P["Prometheus"]
+        DM["Ranker Metrics<br>/metrics:9092"]
+        FM["Indexer Metrics<br>/metrics:9093"]
+        GM["Crawler Metrics<br>/metrics:9091"]
+        Q["Grafana"]
+  end
+    A -- HTTP Requests --> B
+    B -- Search Requests --> C
+    B -- Ranking Requests --> D
+    C -- Query --> E
+    D -- Score --> E
+    G -- Fetch --> H
+    G -- Store --> I
+    F -- Index --> E
+    J -- Manage --> I
+    G -- Trigger --> F
+    R -- Build --> S
+    S -- Deploy --> A & B & C & D & F & G & J
+    DM --> P
+    FM --> P
+    GM --> P
+    P -- Visualize --> Q
+    D -- Expose --> DM
+    F -- Expose --> FM
+    G -- Expose --> GM
+    style B fill:#89DCEB,stroke:#181825,color:#ffffff
+    style A fill:#F5C2E7,stroke:#181825,color:#ffffff
+    style C fill:#ABE9B3,stroke:#181825,color:#ffffff
+    style D fill:#F9E2AF,stroke:#181825,color:#ffffff
+    style E fill:#FAB387,stroke:#181825,color:#ffffff
+    style H fill:#89DCEB,stroke:#181825,color:#ffffff
+    style G fill:#94E2D5,stroke:#181825,color:#ffffff
+    style I fill:#CBA6F7,stroke:#181825,color:#ffffff
+    style F fill:#F38BA8,stroke:#181825,color:#ffffff
+    style J fill:#ABE9B3,stroke:#181825,color:#ffffff
+    style S fill:#F5C2E7,stroke:#181825,color:#ffffff
+    style R fill:#ABE9B3,stroke:#181825,color:#ffffff
+    style P fill:#F38BA8,stroke:#181825,color:#ffffff
+    style DM fill:#B4BEFE,stroke:#181825,color:#ffffff
+    style FM fill:#B4BEFE,stroke:#181825,color:#ffffff
+    style Q fill:#94E2D5,stroke:#181825,color:#ffffff
 
-    %% Data Layer
-    subgraph Data["Data Layer"]
-        G[Crawler Service]-->|"Fetch"|H[Web Pages]
-        G-->|"Store"|I[(PostgreSQL)]
-        F[Indexer Service]-->|"Index"|E
-        J[Storage Service]-->|"Manage"|I
-        G-->|"Trigger"|F
-        
-        style F fill:#F38BA8,stroke:#181825,color:#ffffff
-        style G fill:#94E2D5,stroke:#181825,color:#ffffff
-        style H fill:#89DCEB,stroke:#181825,color:#ffffff
-        style I fill:#CBA6F7,stroke:#181825,color:#ffffff
-        style J fill:#ABE9B3,stroke:#181825,color:#ffffff
-    end
-
-    %% Deployment Layer
-    subgraph Deployment["Deployment Layer"]
-        R[GitHub Actions]-->|"Build"|S[Docker Registry]
-        S-->|"Deploy"|A & B & C & D & F & G & J
-        style R fill:#ABE9B3,stroke:#181825,color:#ffffff
-        style S fill:#F5C2E7,stroke:#181825,color:#ffffff
-    end
-
-    %% Monitoring Layer
-    subgraph Monitoring["Monitoring Layer"]
-        CM["Searcher Metrics<br/>/metrics:9091"] & DM["Ranker Metrics<br/>/metrics:9092"] & FM["Indexer Metrics<br/>/metrics:9093"] & GM["Crawler Metrics<br/>/metrics:9094"] & JM["Storage Metrics<br/>/metrics:9095"]-->P[Prometheus]
-        P-->|"Visualize"|Q[Grafana]
-        
-        C-->|"Expose"|CM
-        D-->|"Expose"|DM
-        F-->|"Expose"|FM
-        G-->|"Expose"|GM
-        J-->|"Expose"|JM
-        
-        style CM fill:#B4BEFE,stroke:#181825,color:#ffffff
-        style DM fill:#B4BEFE,stroke:#181825,color:#ffffff
-        style FM fill:#B4BEFE,stroke:#181825,color:#ffffff
-        style GM fill:#B4BEFE,stroke:#181825,color:#ffffff
-        style JM fill:#B4BEFE,stroke:#181825,color:#ffffff
-        style P fill:#F38BA8,stroke:#181825,color:#ffffff
-        style Q fill:#94E2D5,stroke:#181825,color:#ffffff
-    end
 ```
 
 ## Layer Description
